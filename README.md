@@ -1,16 +1,61 @@
-# klubconnect
 
-A new Flutter project.
+# KlubConnect
 
-## Getting Started
+![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)
+![Firebase](https://img.shields.io/badge/Firebase-Integrated-orange.svg)
+![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-success.svg)
 
-This project is a starting point for a Flutter application.
+**Connect through yoour clubs and build your community**
 
-A few resources to get you started if this is your first Flutter project:
+KlubConnect is a comprehensive **college club management & social networking platform** built with **Flutter + Firebase**,that's designed to simplify communication, club engagement, and event management for students and faculty.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+##  **Project Overview**
+
+The project is divided into **three major phases**:
+
+---
+
+###  **Phase 1 – Authentication & Basic User Module (Completed)**
+
+Features completed in Phase 1:
+
+-  **User Authentication**
+  - Email Login  
+  - Phone OTP Login (Firebase)
+-  **Student & Faculty Registration**
+-  **Profile Setup**
+-  **Login / Logout**
+-  **User Dashboard (Basic Home UI)**
+-  **Glassy UI Design**
+
+---
+
+###  **Phase 2 – Clubs & Events Management (In Development)**
+
+Upcoming features:
+
+-  **Club Creation & Management (Faculty)**
+-  **Join / Leave Clubs (Students)**
+-  **Event Creation (Faculty / Club Admins)**
+-  **Event Registration (Students)**
+-  **Event Details & Participation Lists**
+-  **Dynamic Home Feed for Clubs & Events**
+
+---
+
+###  **Phase 3 – Annual Calendar & Notifications (Planned)**
+
+Future enhancements:
+
+-  **Annual Academic + Club Events Calendar for all users**
+-  **Smart Notifications**
+  - Event Reminders  
+  - Club Meeting Alerts  
+  - New Announcements
+-  **Remaining missed Features from Phase 1 & Phase 2**
+
+---
+
+
