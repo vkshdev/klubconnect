@@ -3,59 +3,73 @@
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)
 ![Firebase](https://img.shields.io/badge/Firebase-Integrated-orange.svg)
-![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-success.svg)
+![Status](https://img.shields.io/badge/Status-Complete-success.svg)
 
-**Connect through yoour clubs and build your community**
+**Connect through your clubs and build your community**
 
-KlubConnect is a comprehensive **college club management & social networking platform** built with **Flutter + Firebase**,that's designed to simplify communication, club engagement, and event management for students and faculty.
-
----
-
-##  **Project Overview**
-
-The project is divided into **three major phases**:
+KlubConnect is a comprehensive college club management and social networking platform built with Flutter and Firebase, designed to simplify communication, club engagement, and event management for students and faculty.
 
 ---
 
-###  **Phase 1 – Authentication & Basic User Module (Completed)**
+## **Project Phases Completed**
 
-Features completed in Phase 1:
+### **Phase 1 - Authentication and Basic User Module**
+- **User Authentication**: Email/Password and Phone OTP (Firebase)
+- **Student and Faculty Registration**: Multi-page registration forms with validation
+- **Profile Setup**: Profile image upload and detailed user information
+- **Glass Morphism UI**: Modern, transparent design language used throughout the app
 
--  **User Authentication**
-  - Email Login  
-  - Phone OTP Login (Firebase)
--  **Student & Faculty Registration**
--  **Profile Setup**
--  **Login / Logout**
--  **User Dashboard (Basic Home UI)**
--  **Glassy UI Design**
+### **Phase 2 - Clubs and Events Management**
+- **Club Management**: Faculty can create clubs; Students can browse and join clubs
+- **Event Workflow**: Presidents/Organizers can propose events for approval by Club Masters
+- **RSVP System**: Students can RSVP (Yes, Interested, No) with real-time participant counts
+- **Membership Management**: Role assignment (Club Master, President, Organizer) and join request approvals
 
----
-
-###  **Phase 2 – Clubs & Events Management (In Development)**
-
-Upcoming features:
-
--  **Club Creation & Management (Faculty)**
--  **Join / Leave Clubs (Students)**
--  **Event Creation (Faculty / Club Admins)**
--  **Event Registration (Students)**
--  **Event Details & Participation Lists**
--  **Dynamic Home Feed for Clubs & Events**
+### **Phase 3 - Calendar, Notifications and Announcements**
+- **Event Calendar**: Monthly/Weekly view for tracking all approved college events
+- **Announcements**: Club leaders can post and pin important announcements
+- **Global Search**: Search for clubs, events, and users with integrated filters
+- **Notifications**: In-app and push notifications for join requests, event approvals, and more
+- **Profile Enhancements**: Edit profile screen with privacy controls for enrollment visibility
 
 ---
 
-###  **Phase 3 – Annual Calendar & Notifications (Planned)**
-
-Future enhancements:
-
--  **Annual Academic + Club Events Calendar for all users**
--  **Smart Notifications**
-  - Event Reminders  
-  - Club Meeting Alerts  
-  - New Announcements
--  **Remaining missed Features from Phase 1 & Phase 2**
+## **Tech Stack**
+- **Frontend**: Flutter (Dart)
+- **Backend**: Firebase (Auth, Firestore, Storage, Messaging)
+- **State Management**: Provider
+- **Design System**: Custom Glass Morphism UI
 
 ---
 
+## **Installation and Setup**
 
+1. **Clone the repository**:
+   ```sh
+   git clone https://github.com/vikashmehta292511/klubconnect.git
+   ```
+
+2. **Install dependencies**:
+   ```sh
+   flutter pub get
+   ```
+
+3. **Firebase Configuration**:
+   - Add your google-services.json to android/app/
+   - Deploy Firestore and Storage rules using Firebase CLI:
+     ```sh
+     firebase deploy --only firestore,storage
+     ```
+
+4. **Run the app**:
+   ```sh
+   flutter run
+   ```
+
+---
+
+## **Security Features**
+- **Role-Based Access Control (RBAC)**: Enforced via Firestore Security Rules
+- **Input Sanitization**: All user inputs are trimmed and cleaned to prevent injection
+- **Strict Validation**: Comprehensive form validation for all critical user actions
+- **Secure File Storage**: Individual and club-level storage permissions
