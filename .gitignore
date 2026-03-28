@@ -87,33 +87,43 @@ windows/flutter/generated_plugins.cmake
 # macOS related
 macos/Flutter/GeneratedPluginRegistrant.swift
 
-# Firebase - IMPORTANT!
-google-services.json
-GoogleService-Info.plist
-firebase_options.dart
-firebase.json
-.env
-.env.local
-.env.*.local
+# Firebase Configuration - CRITICAL!
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase_options.dart
+**/firebase.json
+**/.env
+**/.env.local
+**/.env.*.local
+**/.firebaserc
+**/firebase-debug.log
 
-# Sensitive credentials
-android/key.properties
-*.keystore
-*.jks
-*.p12
-*.pem
+# Sensitive credentials & Keystores
+**/android/key.properties
+**/*.keystore
+**/*.jks
+**/*.p12
+**/*.pem
+**/android/app/key.properties
+**/android/app/*.jks
 
-# APK files (optional - uncomment if you don't want to track APKs)
-# *.apk
-# *.aab
+# Gradle Wrapper
+**/android/gradle/wrapper/gradle-wrapper.jar
+**/android/gradle/wrapper/gradle-wrapper.properties
 
-# Large files
-*.icloud
+# Build outputs
+**/*.apk
+**/*.aab
+**/*.ipa
+**/build/
 
-# Testing
+# Testing & Coverage
 coverage/
 test/.test_coverage.dart
 
 # Others
 .fvm/
+.fvmrc
 .metadata
+.tool/
+*.icloud
