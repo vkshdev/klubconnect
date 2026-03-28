@@ -1,0 +1,35 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // User Profile Images
+    match /profiles/{userId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Club Logos and Banners
+    match /clubs/{clubId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); 
+      // In a production environment, you would check if the user is the Club Master 
+      // by fetching the club document from Firestore using the `firestore.get()` function.
+    }
+
+    // Event Banners
+    match /events/{eventId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+    
+    // Announcement Media
+    match /announcements/{announcementId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+  }
+}
