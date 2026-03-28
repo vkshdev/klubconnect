@@ -64,11 +64,12 @@ class Validators {
       return '$fieldName is required';
     }
 
-    if (value.length < 2) {
+    final trimmedValue = value.trim();
+    if (trimmedValue.length < 2) {
       return '$fieldName must be at least 2 characters';
     }
 
-    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
+    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(trimmedValue)) {
       return '$fieldName can only contain letters';
     }
 
@@ -76,8 +77,8 @@ class Validators {
   }
 
   // Required Field
-  static String? validateRequired(String? value, String fieldName) {
-    if (value == null || value.isEmpty) {
+  static String? validateRequired(String? value, [String fieldName = 'Field']) {
+    if (value == null || value.trim().isEmpty) {
       return '$fieldName is required';
     }
     return null;
@@ -85,12 +86,17 @@ class Validators {
 
   // Enrollment Number
   static String? validateEnrollment(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Enrollment number is required';
     }
 
-    if (value.length < 5) {
+    final trimmedValue = value.trim();
+    if (trimmedValue.length < 5) {
       return 'Enter a valid enrollment number';
+    }
+
+    if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(trimmedValue)) {
+      return 'Enrollment number can only contain letters and numbers';
     }
 
     return null;
@@ -98,15 +104,16 @@ class Validators {
 
   // About/Bio Validation
   static String? validateAbout(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'About section is required';
     }
 
-    if (value.length < 20) {
-      return 'Please write at least 20 characters';
+    final trimmedValue = value.trim();
+    if (trimmedValue.length < 10) {
+      return 'Please write at least 10 characters';
     }
 
-    if (value.length > 500) {
+    if (trimmedValue.length > 500) {
       return 'Maximum 500 characters allowed';
     }
 
@@ -124,5 +131,10 @@ class Validators {
     }
 
     return null;
+  }
+  
+  // Sanitize input
+  static String sanitize(String value) {
+    return value.trim().replaceAll(RegExp(r'[<>]'), '');
   }
 }

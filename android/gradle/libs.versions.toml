@@ -1,0 +1,15 @@
+[versions]
+agp = "8.7.3"
+kotlin = "2.1.10"
+googleServices = "4.4.2"
+flutterPluginLoader = "1.0.0"
+firebaseBom = "33.10.0"
+
+[libraries]
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+flutter-plugin-loader = { id = "dev.flutter.flutter-plugin-loader", version.ref = "flutterPluginLoader" }

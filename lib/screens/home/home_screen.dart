@@ -6,6 +6,15 @@ import '../../services/firestore_service.dart';
 import '../../models/user_model.dart';
 import '../../widgets/glass_card.dart';
 import '../../utils/constants.dart';
+import '../clubs/club_list_screen.dart';
+import '../clubs/create_club_screen.dart';
+import '../events/event_details_screen.dart';
+import '../../models/event_model.dart';
+import '../../services/event_service.dart';
+import '../home/calendar_screen.dart';
+import '../home/search_screen.dart';
+import '../notifications/notification_screen.dart';
+import '../profile/edit_profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +25,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _firestoreService = FirestoreService();
+  final _eventService = EventService();
   UserModel? _currentUser;
 
   @override
@@ -30,9 +40,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (uid != null) {
       final user = await _firestoreService.getUserById(uid);
-      setState(() {
-        _currentUser = user;
-      });
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+        });
+      }
     }
   }
 
@@ -63,8 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -109,15 +119,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
+                    icon: const Icon(Icons.search),
                     onPressed: () {
-                      // TODO: Navigate to notifications
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
                     },
                   ),
                   IconButton(
-                    icon: const Icon(Icons.settings_outlined),
+                    icon: const Icon(Icons.notifications_outlined),
                     onPressed: () {
-                      // TODO: Navigate to settings
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
                     },
                   ),
                 ],
@@ -170,57 +180,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       const SizedBox(height: 32),
 
-                      // Coming Soon Section
-                      GlassCard(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.construction_outlined,
-                              size: 64,
-                              color: Theme.of(context).primaryColor.withOpacity(0.5),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'More Features Coming Soon!',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'We\'re working on bringing you clubs, events, calendar, and more exciting features.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Phase 1: Authentication & Profile ✅',
-                              style: TextStyle(
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Phase 2: Clubs & Events (In Development)',
-                              style: TextStyle(
-                                color: Colors.orange.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Phase 3: Calendar & Notifications (Planned)',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                      // Featured Events Section
+                      Text(
+                        'Featured Events',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+
+                      const SizedBox(height: 16),
+
+                      if (_currentUser != null) _buildEventsList(),
 
                       const SizedBox(height: 24),
 
@@ -369,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () {
-              // TODO: Navigate to edit profile
+              Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfileScreen(user: user)));
             },
           ),
         ],
@@ -385,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
         label: 'Browse Clubs',
         color: const Color(0xFF4CAF50),
         onTap: () {
-          // TODO: Navigate to clubs
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ClubListScreen()));
         },
       ),
       _QuickAction(
@@ -393,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
         label: 'Events',
         color: const Color(0xFFFF9800),
         onTap: () {
-          // TODO: Navigate to events
+           // TODO: Navigate to events list screen if needed
         },
       ),
       _QuickAction(
@@ -401,7 +371,7 @@ class _HomeScreenState extends State<HomeScreen> {
         label: 'Calendar',
         color: const Color(0xFF2196F3),
         onTap: () {
-          // TODO: Navigate to calendar
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarScreen()));
         },
       ),
       _QuickAction(
@@ -419,7 +389,7 @@ class _HomeScreenState extends State<HomeScreen> {
         label: 'Create Club',
         color: const Color(0xFF4CAF50),
         onTap: () {
-          // TODO: Navigate to create club
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateClubScreen()));
         },
       ),
       _QuickAction(
@@ -427,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
         label: 'My Clubs',
         color: const Color(0xFF2196F3),
         onTap: () {
-          // TODO: Navigate to my clubs
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ClubListScreen()));
         },
       ),
       _QuickAction(
@@ -489,6 +459,51 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildEventsList() {
+    return StreamBuilder<List<EventModel>>(
+      stream: _eventService.getApprovedEvents(_currentUser!.collegeName),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Text('No featured events.');
+        }
+
+        final events = snapshot.data!;
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: events.length,
+          itemBuilder: (context, index) {
+            final event = events[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EventDetailsScreen(eventId: event.eventId),
+                  ),
+                ),
+                child: GlassCard(
+                  child: ListTile(
+                    title: Text(
+                      event.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text('${event.eventDate.day}/${event.eventDate.month} · ${event.clubName}'),
+                    trailing: const Icon(Icons.chevron_right),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
