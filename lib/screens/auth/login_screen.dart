@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _rememberMe = false;
+  bool _useMagicLink = false;
 
   @override
   void dispose() {
@@ -34,58 +34,47 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-
     final authService = Provider.of<AuthService>(context, listen: false);
-    final result = await authService.signInWithEmailPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
 
-    setState(() => _isLoading = false);
-
-    if (result['success']) {
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false,
+    if (_useMagicLink) {
+      final result = await authService.sendMagicLink(_emailController.text.trim());
+      setState(() => _isLoading = false);
+      Fluttertoast.showToast(msg: result['message']);
+      if (result['success']) {
+        // Show guidance to user
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Check your Email'),
+            content: const Text('We have sent a login link to your email address. Please click the link to sign in.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
       }
     } else {
-      Fluttertoast.showToast(msg: result['message']);
+      final result = await authService.signInWithEmailPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      setState(() => _isLoading = false);
+
+      if (result['success']) {
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+          );
+        }
+      } else {
+        Fluttertoast.showToast(msg: result['message']);
+      }
     }
-  }
-
-  Future<void> _forgotPassword() async {
-    final email = _emailController.text.trim();
-
-    if (email.isEmpty) {
-      Fluttertoast.showToast(msg: 'Please enter your email');
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset Password'),
-        content: Text('Send password reset link to $email?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final authService = Provider.of<AuthService>(context, listen: false);
-              final result = await authService.resetPassword(email);
-              Fluttertoast.showToast(msg: result['message']);
-            },
-            child: const Text('Send'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -110,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  // Back Button
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
@@ -118,10 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
-
                   const SizedBox(height: 40),
-
-                  // App Logo
                   Container(
                     width: 100,
                     height: 100,
@@ -142,10 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Color(0xFF2196F3),
                     ),
                   ),
-
                   const SizedBox(height: 32),
-
-                  // Welcome Text
                   const Text(
                     'Welcome Back!',
                     style: TextStyle(
@@ -154,9 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.white,
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
                   Text(
                     'Login to continue',
                     style: TextStyle(
@@ -164,10 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.white.withOpacity(0.9),
                     ),
                   ),
-
                   const SizedBox(height: 48),
-
-                  // Login Form
                   GlassCard(
                     padding: const EdgeInsets.all(24),
                     child: Column(
@@ -180,68 +157,40 @@ class _LoginScreenState extends State<LoginScreen> {
                           validator: Validators.validateEmail,
                           prefixIcon: Icons.email,
                         ),
-
                         const SizedBox(height: 20),
-
-                        CustomTextField(
-                          label: 'Password',
-                          hint: 'Enter your password',
-                          controller: _passwordController,
-                          obscureText: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Password is required';
-                            }
-                            return null;
-                          },
-                          prefixIcon: Icons.lock,
-                        ),
-
+                        if (!_useMagicLink)
+                          CustomTextField(
+                            label: 'Password',
+                            hint: 'Enter your password',
+                            controller: _passwordController,
+                            obscureText: true,
+                            validator: (value) => (value == null || value.isEmpty) ? 'Password is required' : null,
+                            prefixIcon: Icons.lock,
+                          ),
                         const SizedBox(height: 16),
-
-                        // Remember Me & Forgot Password
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _rememberMe,
-                                  onChanged: (value) {
-                                    setState(() => _rememberMe = value ?? false);
-                                  },
-                                ),
-                                const Text(
-                                  'Remember me',
-                                  style: TextStyle(fontSize: 13),
-                                ),
-                              ],
+                            const Text(
+                              'Use Passwordless Login?',
+                              style: TextStyle(fontSize: 13),
                             ),
-                            TextButton(
-                              onPressed: _forgotPassword,
-                              child: const Text(
-                                'Forgot Password?',
-                                style: TextStyle(fontSize: 13),
-                              ),
+                            Switch(
+                              value: _useMagicLink,
+                              onChanged: (val) => setState(() => _useMagicLink = val),
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 24),
-
-                        // Login Button
                         CustomButton(
-                          text: 'Login',
+                          text: _useMagicLink ? 'Send Login Link' : 'Login',
                           onPressed: _login,
                           isLoading: _isLoading,
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 32),
-
-                  // Sign Up Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

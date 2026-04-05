@@ -76,7 +76,7 @@ class WelcomeScreen extends StatelessWidget {
 
                 const Spacer(),
 
-                // Selection Cards
+                // Selection Cards - Updated to navigate to LoginScreen
                 GlassCard(
                   margin: const EdgeInsets.only(bottom: 16),
                   child: InkWell(
@@ -84,9 +84,7 @@ class WelcomeScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const RegistrationScreen(
-                            userType: AppConstants.userTypeStudent,
-                          ),
+                          builder: (context) => const LoginScreen(),
                         ),
                       );
                     },
@@ -144,9 +142,7 @@ class WelcomeScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const RegistrationScreen(
-                            userType: AppConstants.userTypeFaculty,
-                          ),
+                          builder: (context) => const LoginScreen(),
                         ),
                       );
                     },
@@ -200,27 +196,30 @@ class WelcomeScreen extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
-                // Login Link
+                // Register Link - Swapped with Login
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account? ',
+                      "Don't have an account? ",
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
                       ),
                     ),
                     TextButton(
                       onPressed: () {
+                        // Default to student registration or show a choice
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
+                            builder: (context) => const RegistrationScreen(
+                              userType: AppConstants.userTypeStudent,
+                            ),
                           ),
                         );
                       },
                       child: const Text(
-                        'Login',
+                        'Register',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
