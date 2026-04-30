@@ -27,7 +27,7 @@ class AuthService extends ChangeNotifier {
       var acs = ActionCodeSettings(
         url: 'https://klubconnect.page.link/login', // Configure in Firebase Console
         handleCodeInApp: true,
-        androidPackageName: 'com.example.klub_connect',
+        androidPackageName: 'com.example.klubconnect',
         androidInstallApp: true,
         androidMinimumVersion: '1',
       );
