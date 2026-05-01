@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../services/auth_service.dart';
-import '../../services/firestore_service.dart';
-import '../../models/user_model.dart';
-import '../../widgets/glass_card.dart';
-import '../../utils/constants.dart';
-import '../clubs/club_list_screen.dart';
-import '../clubs/create_club_screen.dart';
-import '../events/event_details_screen.dart';
+
+import '../../models/club_model.dart';
 import '../../models/event_model.dart';
+import '../../models/user_model.dart';
+import '../../services/auth_service.dart';
+import '../../services/club_service.dart';
 import '../../services/event_service.dart';
+import '../../services/firestore_service.dart';
+import '../../services/notification_service.dart';
+import '../../widgets/glass_card.dart';
+import '../clubs/club_details_screen.dart';
+import '../clubs/club_list_screen.dart';
+import '../events/event_details_screen.dart';
 import '../home/calendar_screen.dart';
 import '../home/search_screen.dart';
 import '../notifications/notification_screen.dart';
@@ -25,8 +27,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _firestoreService = FirestoreService();
+  final _clubService = ClubService();
   final _eventService = EventService();
+  final _notificationService = NotificationService();
+
   UserModel? _currentUser;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -37,14 +43,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadUserData() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final uid = authService.currentUser?.uid;
+    if (uid == null) return;
 
-    if (uid != null) {
-      final user = await _firestoreService.getUserById(uid);
-      if (mounted) {
-        setState(() {
-          _currentUser = user;
-        });
-      }
+    final user = await _firestoreService.getUserById(uid);
+    if (user != null) {
+      await _notificationService.initialize(userId: user.uid);
+    }
+    if (mounted) {
+      setState(() {
+        _currentUser = user;
+        _isLoading = false;
+      });
     }
   }
 
@@ -55,469 +64,444 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout', style: TextStyle(color: Colors.red)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout')),
         ],
       ),
     );
 
-    if (confirmed == true) {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      await authService.signOut();
+    if (confirmed == true && mounted) {
+      await Provider.of<AuthService>(context, listen: false).signOut();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_currentUser == null) {
+      return const Scaffold(body: Center(child: Text('Profile not found.')));
+    }
+
     return Scaffold(
+      extendBody: true,
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).primaryColor.withOpacity(0.1),
-              Colors.white,
-            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC), Color(0xFFFFFFFF)],
           ),
         ),
         child: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              // App Bar
-              SliverAppBar(
-                expandedHeight: 200,
-                floating: false,
-                pinned: true,
-                backgroundColor: Theme.of(context).primaryColor,
-                flexibleSpace: FlexibleSpaceBar(
-                  title: Text(
-                    AppConstants.appName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Theme.of(context).primaryColor,
-                          Theme.of(context).primaryColor.withOpacity(0.7),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
-                    },
-                  ),
+          child: RefreshIndicator(
+            onRefresh: _loadUserData,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 100),
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 18),
+                _buildPrimaryActions(),
+                const SizedBox(height: 18),
+                _buildStats(),
+                const SizedBox(height: 24),
+                _buildSectionHeader('Upcoming Events', 'View calendar', () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarScreen()));
+                }),
+                const SizedBox(height: 12),
+                _buildUpcomingEvents(),
+                const SizedBox(height: 24),
+                _buildSectionHeader('My Clubs', 'Browse all', () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ClubListScreen()));
+                }),
+                const SizedBox(height: 12),
+                _buildMyClubs(),
+                if (_managedClubIds.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('Pending Approvals', 'Open clubs', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ClubListScreen()));
+                  }),
+                  const SizedBox(height: 12),
+                  _buildPendingApprovals(),
                 ],
+              ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  List<String> get _managedClubIds {
+    final user = _currentUser;
+    if (user == null) return [];
+    return {...user.clubsCreated, ...user.isPresidentOf, ...user.isOrganizerOf}.toList();
+  }
+
+  Widget _buildHeader() {
+    final user = _currentUser!;
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hello, ${user.firstName}',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F172A),
+                    ),
               ),
-
-              // Content
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // User Profile Card
-                      if (_currentUser != null) _buildProfileCard(_currentUser!),
-
-                      const SizedBox(height: 24),
-
-                      // Welcome Message
-                      Text(
-                        'Welcome ${_currentUser?.firstName ?? ""}! 👋',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      Text(
-                        _currentUser?.userType == AppConstants.userTypeStudent
-                            ? 'Explore clubs and connect with your peers'
-                            : 'Manage your clubs and mentor students',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Quick Actions
-                      Text(
-                        'Quick Actions',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      _buildQuickActions(),
-
-                      const SizedBox(height: 32),
-
-                      // Featured Events Section
-                      Text(
-                        'Featured Events',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      if (_currentUser != null) _buildEventsList(),
-
-                      const SizedBox(height: 24),
-
-                      // Logout Button
-                      Center(
-                        child: OutlinedButton.icon(
-                          onPressed: _logout,
-                          icon: const Icon(Icons.logout, color: Colors.red),
-                          label: const Text(
-                            'Logout',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
+              const SizedBox(height: 4),
+              Text(
+                user.collegeName,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey.shade700),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildProfileCard(UserModel user) {
-    return GlassCard(
-      child: Row(
-        children: [
-          // Profile Picture
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-            backgroundImage: user.profileImageUrl != null
-                ? NetworkImage(user.profileImageUrl!)
-                : null,
-            child: user.profileImageUrl == null
-                ? Text(
-              user.firstName[0].toUpperCase(),
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            )
-                : null,
-          ),
-
-          const SizedBox(width: 16),
-
-          // User Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        StreamBuilder<int>(
+          stream: _notificationService.getUnreadCount(user.uid),
+          builder: (context, snapshot) {
+            final count = snapshot.data ?? 0;
+            return Stack(
               children: [
-                Text(
-                  user.fullName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                IconButton.filledTonal(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const NotificationScreen()),
                   ),
                 ),
-                const SizedBox(height: 4),
-
-                if (user.userType == AppConstants.userTypeStudent) ...[
-                  Text(
-                    '${user.course} - ${user.branch}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  if (user.currentYearLabel != null)
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                if (count > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: const BoxDecoration(color: Color(0xFFE11D48), shape: BoxShape.circle),
                       child: Text(
-                        user.currentYearLabel!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        count > 9 ? '9+' : '$count',
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ),
-                ] else ...[
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.verified,
-                        size: 16,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        user.profession ?? 'Faculty',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
                   ),
-                  Text(
-                    user.department ?? '',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 8),
-
-                Text(
-                  user.collegeName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ],
-            ),
+            );
+          },
+        ),
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => EditProfileScreen(user: user)),
           ),
-
-          // Edit Button
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfileScreen(user: user)));
-            },
+          child: CircleAvatar(
+            radius: 24,
+            backgroundImage: user.profileImageUrl != null ? NetworkImage(user.profileImageUrl!) : null,
+            child: user.profileImageUrl == null && user.firstName.isNotEmpty
+                ? Text(user.firstName[0].toUpperCase())
+                : null,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildQuickActions() {
-    final actions = _currentUser?.userType == AppConstants.userTypeStudent
-        ? [
-      _QuickAction(
-        icon: Icons.groups,
-        label: 'Browse Clubs',
-        color: const Color(0xFF4CAF50),
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const ClubListScreen()));
-        },
-      ),
-      _QuickAction(
-        icon: Icons.event,
-        label: 'Events',
-        color: const Color(0xFFFF9800),
-        onTap: () {
-           // TODO: Navigate to events list screen if needed
-        },
-      ),
-      _QuickAction(
-        icon: Icons.calendar_today,
-        label: 'Calendar',
-        color: const Color(0xFF2196F3),
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarScreen()));
-        },
-      ),
-      _QuickAction(
-        icon: Icons.person,
-        label: 'My Profile',
-        color: const Color(0xFF9C27B0),
-        onTap: () {
-          // TODO: Navigate to profile
-        },
-      ),
-    ]
-        : [
-      _QuickAction(
-        icon: Icons.add_circle,
-        label: 'Create Club',
-        color: const Color(0xFF4CAF50),
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateClubScreen()));
-        },
-      ),
-      _QuickAction(
-        icon: Icons.dashboard,
-        label: 'My Clubs',
-        color: const Color(0xFF2196F3),
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const ClubListScreen()));
-        },
-      ),
-      _QuickAction(
-        icon: Icons.pending_actions,
-        label: 'Approvals',
-        color: const Color(0xFFFF9800),
-        onTap: () {
-          // TODO: Navigate to approvals
-        },
-      ),
-      _QuickAction(
-        icon: Icons.analytics,
-        label: 'Analytics',
-        color: const Color(0xFF9C27B0),
-        onTap: () {
-          // TODO: Navigate to analytics
-        },
-      ),
+  Widget _buildPrimaryActions() {
+    final actions = [
+      _HomeAction('Clubs', Icons.groups_outlined, () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const ClubListScreen()));
+      }),
+      _HomeAction('Calendar', Icons.calendar_month_outlined, () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarScreen()));
+      }),
+      _HomeAction('Search', Icons.search, () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
+      }),
+      _HomeAction('Profile', Icons.person_outline, () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfileScreen(user: _currentUser!)));
+      }),
     ];
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      children: actions.map((action) {
-        return GestureDetector(
-          onTap: action.onTap,
-          child: GlassCard(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: action.color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    action.icon,
-                    size: 32,
-                    color: action.color,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  action.label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+    return GlassCard(
+      padding: const EdgeInsets.all(14),
+      borderRadius: 24,
+      child: Row(
+        children: actions
+            .map(
+              (action) => Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: action.onTap,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2563EB).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(action.icon, color: const Color(0xFF1D4ED8)),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(action.label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 
-  Widget _buildEventsList() {
+  Widget _buildStats() {
+    final user = _currentUser!;
+    return Row(
+      children: [
+        Expanded(child: _StatCard(label: 'Joined', value: '${user.clubsJoined.length}', icon: Icons.group_outlined)),
+        const SizedBox(width: 12),
+        Expanded(child: _StatCard(label: 'President', value: '${user.isPresidentOf.length}', icon: Icons.verified_outlined)),
+        const SizedBox(width: 12),
+        Expanded(child: _StatCard(label: 'Organizer', value: '${user.isOrganizerOf.length}', icon: Icons.event_note_outlined)),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, String action, VoidCallback onTap) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+          ),
+        ),
+        TextButton(onPressed: onTap, child: Text(action)),
+      ],
+    );
+  }
+
+  Widget _buildUpcomingEvents() {
     return StreamBuilder<List<EventModel>>(
       stream: _eventService.getApprovedEvents(_currentUser!.collegeName),
       builder: (context, snapshot) {
+        final events = (snapshot.data ?? [])
+            .where((event) => event.eventDate.isAfter(DateTime.now().subtract(const Duration(days: 1))))
+            .take(5)
+            .toList();
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Text('No featured events.');
+        if (events.isEmpty) {
+          return const GlassCard(child: Text('No upcoming events yet.'));
         }
-
-        final events = snapshot.data!;
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            final event = events[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EventDetailsScreen(eventId: event.eventId),
-                  ),
-                ),
-                child: GlassCard(
-                  child: ListTile(
-                    title: Text(
-                      event.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+        return Column(
+          children: events
+              .map(
+                (event) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: GlassCard(
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: _AccentBar(colorCode: event.clubColor),
+                      title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                      subtitle: Text('${event.clubName} - ${event.eventDate.day}/${event.eventDate.month} at ${event.eventTime}'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => EventDetailsScreen(eventId: event.eventId)),
+                      ),
                     ),
-                    subtitle: Text('${event.eventDate.day}/${event.eventDate.month} · ${event.clubName}'),
-                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
-              ),
-            );
-          },
+              )
+              .toList(),
         );
       },
     );
   }
+
+  Widget _buildMyClubs() {
+    return StreamBuilder<List<ClubModel>>(
+      stream: _clubService.getClubsForUser(_currentUser!.clubsJoined),
+      builder: (context, snapshot) {
+        final clubs = snapshot.data ?? [];
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (clubs.isEmpty) {
+          return const GlassCard(child: Text('Join a club to see it here.'));
+        }
+        return SizedBox(
+          height: 138,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: clubs.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final club = clubs[index];
+              return SizedBox(
+                width: 220,
+                child: GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ClubDetailsScreen(clubId: club.clubId)),
+                  ),
+                  child: GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundImage: club.logoUrl.isNotEmpty ? NetworkImage(club.logoUrl) : null,
+                              child: club.logoUrl.isEmpty && club.name.isNotEmpty ? Text(club.name[0]) : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                club.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Text(club.category, style: TextStyle(color: Colors.grey.shade700)),
+                        Text('${club.totalMembers} members', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPendingApprovals() {
+    return StreamBuilder<List<EventModel>>(
+      stream: _eventService.getPendingEventsForClubs(_managedClubIds),
+      builder: (context, snapshot) {
+        final events = snapshot.data ?? [];
+        if (events.isEmpty) {
+          return const GlassCard(child: Text('No pending event approvals.'));
+        }
+        return GlassCard(
+          child: Column(
+            children: events
+                .take(3)
+                .map(
+                  (event) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(event.clubName),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ClubDetailsScreen(clubId: event.clubId)),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return NavigationBar(
+      selectedIndex: 0,
+      onDestinationSelected: (index) {
+        if (index == 1) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ClubListScreen()));
+        } else if (index == 2) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarScreen()));
+        } else if (index == 3) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
+        } else if (index == 4) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfileScreen(user: _currentUser!)));
+        }
+      },
+      destinations: const [
+        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+        NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Clubs'),
+        NavigationDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month), label: 'Calendar'),
+        NavigationDestination(icon: Icon(Icons.search), label: 'Search'),
+        NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+      ],
+    );
+  }
 }
 
-class _QuickAction {
-  final IconData icon;
+class _HomeAction {
   final String label;
-  final Color color;
+  final IconData icon;
   final VoidCallback onTap;
 
-  _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+  _HomeAction(this.label, this.icon, this.onTap);
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _StatCard({required this.label, required this.value, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      borderRadius: 22,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF2563EB)),
+          const SizedBox(height: 10),
+          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+          Text(label, style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccentBar extends StatelessWidget {
+  final String colorCode;
+
+  const _AccentBar({required this.colorCode});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+    try {
+      color = Color(int.parse(colorCode.replaceAll('#', '0xFF')));
+    } catch (_) {
+      color = Theme.of(context).primaryColor;
+    }
+    return Container(
+      width: 6,
+      height: 48,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(99)),
+    );
+  }
 }
