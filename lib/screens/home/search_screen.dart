@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+
 import '../../models/club_model.dart';
 import '../../models/event_model.dart';
 import '../../models/user_model.dart';
+import '../../services/auth_service.dart';
+import '../../services/club_service.dart';
+import '../../services/event_service.dart';
+import '../../services/firestore_service.dart';
 import '../../widgets/glass_card.dart';
 import '../clubs/club_details_screen.dart';
 import '../events/event_details_screen.dart';
@@ -15,95 +20,93 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = "";
-  String _selectedFilter = "Clubs"; // 'Clubs', 'Events', 'Users'
+  final _searchController = TextEditingController();
+  final _firestoreService = FirestoreService();
+  final _clubService = ClubService();
+  final _eventService = EventService();
+
+  UserModel? _currentUser;
+  String _query = '';
+  String _selectedFilter = 'Clubs';
+  String _selectedCategory = 'All';
+
+  static const _filters = ['Clubs', 'Events', 'Users'];
+  static const _categories = [
+    'All',
+    'Technical',
+    'Cultural',
+    'Sports',
+    'Entrepreneurship',
+    'Literary',
+    'Social Impact',
+    'Arts',
+    'Other',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUser() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final uid = authService.currentUser?.uid;
+    if (uid == null) return;
+    final user = await _firestoreService.getUserById(uid);
+    if (mounted) setState(() => _currentUser = user);
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_currentUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).primaryColor.withOpacity(0.1),
-              Colors.white,
-            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFEFF6FF), Color(0xFFFFFFFF)],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
                     Expanded(
                       child: GlassCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        borderRadius: 20,
                         child: TextField(
                           controller: _searchController,
                           autofocus: true,
                           decoration: const InputDecoration(
-                            hintText: "Search here...",
+                            hintText: 'Search clubs, events, or users',
                             border: InputBorder.none,
                             icon: Icon(Icons.search),
                           ),
-                          onChanged: (value) {
-                            setState(() {
-                              _searchQuery = value.toLowerCase();
-                            });
-                          },
+                          onChanged: (value) => setState(() => _query = value),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: ["Clubs", "Events", "Users"].map((filter) {
-                    final isSelected = _selectedFilter == filter;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ChoiceChip(
-                        label: Text(filter),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) setState(() => _selectedFilter = filter);
-                        },
-                        selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                        labelStyle: TextStyle(
-                          color: isSelected ? Theme.of(context).primaryColor : Colors.black,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              Expanded(
-                child: _searchQuery.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search_rounded, size: 64, color: Colors.grey.shade300),
-                            const SizedBox(height: 16),
-                            const Text("Explore clubs and events"),
-                          ],
-                        ),
-                      )
-                    : _buildSearchResults(),
-              ),
+              _buildFilters(),
+              Expanded(child: _buildResults()),
             ],
           ),
         ),
@@ -111,95 +114,159 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildSearchResults() {
-    String collection;
-    switch (_selectedFilter) {
-      case "Clubs": collection = "clubs"; break;
-      case "Events": collection = "events"; break;
-      case "Users": collection = "users"; break;
-      default: return Container();
+  Widget _buildFilters() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          ..._filters.map((filter) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(filter),
+                selected: _selectedFilter == filter,
+                onSelected: (_) => setState(() => _selectedFilter = filter),
+              ),
+            );
+          }),
+          if (_selectedFilter == 'Clubs')
+            DropdownButton<String>(
+              value: _selectedCategory,
+              items: _categories.map((category) {
+                return DropdownMenuItem(value: category, child: Text(category));
+              }).toList(),
+              onChanged: (value) => setState(() => _selectedCategory = value ?? 'All'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResults() {
+    if (_query.trim().isEmpty) {
+      return Center(
+        child: Text(
+          'Start typing to search ${_currentUser!.collegeName}.',
+          style: TextStyle(color: Colors.grey.shade700),
+          textAlign: TextAlign.center,
+        ),
+      );
     }
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection(collection).snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text("No results found."));
-        }
+    if (_selectedFilter == 'Clubs') {
+      return StreamBuilder<List<ClubModel>>(
+        stream: _clubService.searchClubs(
+          collegeName: _currentUser!.collegeName,
+          query: _query,
+          category: _selectedCategory,
+        ),
+        builder: (context, snapshot) => _buildClubResults(snapshot.data ?? [], snapshot.connectionState),
+      );
+    }
 
-        final filteredDocs = snapshot.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final name = (data['name'] ?? data['title'] ?? data['full_name'] ?? "").toString().toLowerCase();
-          return name.contains(_searchQuery);
-        }).toList();
+    if (_selectedFilter == 'Events') {
+      return StreamBuilder<List<EventModel>>(
+        stream: _eventService.searchEvents(
+          collegeName: _currentUser!.collegeName,
+          query: _query,
+          status: EventStatus.approved,
+        ),
+        builder: (context, snapshot) => _buildEventResults(snapshot.data ?? [], snapshot.connectionState),
+      );
+    }
 
-        if (filteredDocs.isEmpty) {
-          return const Center(child: Text("No matches found."));
-        }
+    return StreamBuilder<List<UserModel>>(
+      stream: _firestoreService.searchUsersByCollege(
+        collegeName: _currentUser!.collegeName,
+        query: _query,
+      ),
+      builder: (context, snapshot) => _buildUserResults(snapshot.data ?? [], snapshot.connectionState),
+    );
+  }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: filteredDocs.length,
-          itemBuilder: (context, index) {
-            final doc = filteredDocs[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildResultItem(doc),
-            );
-          },
+  Widget _buildClubResults(List<ClubModel> clubs, ConnectionState state) {
+    if (state == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+    if (clubs.isEmpty) return const Center(child: Text('No matching clubs.'));
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: clubs.length,
+      itemBuilder: (context, index) {
+        final club = clubs[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: GlassCard(
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                backgroundImage: club.logoUrl.isNotEmpty ? NetworkImage(club.logoUrl) : null,
+                child: club.logoUrl.isEmpty && club.name.isNotEmpty ? Text(club.name[0]) : null,
+              ),
+              title: Text(club.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(club.category),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ClubDetailsScreen(clubId: club.clubId)),
+              ),
+            ),
+          ),
         );
       },
     );
   }
 
-  Widget _buildResultItem(DocumentSnapshot doc) {
-    if (_selectedFilter == "Clubs") {
-      final club = ClubModel.fromFirestore(doc);
-      return GestureDetector(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ClubDetailsScreen(clubId: club.clubId))),
-        child: GlassCard(
-          padding: const EdgeInsets.all(12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundImage: club.logoUrl.isNotEmpty ? NetworkImage(club.logoUrl) : null,
-              child: club.logoUrl.isEmpty ? Text(club.name[0]) : null,
+  Widget _buildEventResults(List<EventModel> events, ConnectionState state) {
+    if (state == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+    if (events.isEmpty) return const Center(child: Text('No matching events.'));
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: events.length,
+      itemBuilder: (context, index) {
+        final event = events[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: GlassCard(
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.event_outlined),
+              title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(event.clubName),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => EventDetailsScreen(eventId: event.eventId)),
+              ),
             ),
-            title: Text(club.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(club.category),
-            trailing: const Icon(Icons.chevron_right),
           ),
-        ),
-      );
-    } else if (_selectedFilter == "Events") {
-      final event = EventModel.fromFirestore(doc);
-      return GestureDetector(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => EventDetailsScreen(eventId: event.eventId))),
-        child: GlassCard(
-          padding: const EdgeInsets.all(12),
-          child: ListTile(
-            leading: const Icon(Icons.event, color: Colors.blue),
-            title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(event.clubName),
-            trailing: const Icon(Icons.chevron_right),
+        );
+      },
+    );
+  }
+
+  Widget _buildUserResults(List<UserModel> users, ConnectionState state) {
+    if (state == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+    if (users.isEmpty) return const Center(child: Text('No matching users.'));
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: users.length,
+      itemBuilder: (context, index) {
+        final user = users[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: GlassCard(
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                backgroundImage: user.profileImageUrl != null ? NetworkImage(user.profileImageUrl!) : null,
+                child: user.profileImageUrl == null && user.firstName.isNotEmpty ? Text(user.firstName[0]) : null,
+              ),
+              title: Text(user.fullName, style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(user.userType),
+            ),
           ),
-        ),
-      );
-    } else {
-      final user = UserModel.fromFirestore(doc);
-      return GlassCard(
-        padding: const EdgeInsets.all(12),
-        child: ListTile(
-          leading: CircleAvatar(
-            backgroundImage: user.profileImageUrl != null ? NetworkImage(user.profileImageUrl!) : null,
-            child: user.profileImageUrl == null ? Text(user.firstName[0]) : null,
-          ),
-          title: Text(user.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text(user.userType),
-        ),
-      );
-    }
+        );
+      },
+    );
   }
 }
