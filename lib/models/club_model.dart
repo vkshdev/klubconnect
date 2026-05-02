@@ -69,9 +69,15 @@ class ClubModel {
       isActive: data['is_active'] ?? true,
       isAcceptingMembers: data['is_accepting_members'] ?? true,
       socialLinks: Map<String, String>.from(data['social_links'] ?? {}),
-      createdAt: (data['created_at'] as Timestamp).toDate(),
-      updatedAt: (data['updated_at'] as Timestamp).toDate(),
+      createdAt: _dateFrom(data['created_at']),
+      updatedAt: _dateFrom(data['updated_at']),
     );
+  }
+
+  static DateTime _dateFrom(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
   }
 
   Map<String, dynamic> toFirestore() {
