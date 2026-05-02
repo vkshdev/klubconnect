@@ -5,6 +5,8 @@ import '../../models/notification_model.dart';
 import '../../services/notification_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/glass_card.dart';
+import '../clubs/club_details_screen.dart';
+import '../events/event_details_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -59,9 +61,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     IconButton(
                       icon: const Icon(Icons.done_all),
                       tooltip: 'Mark all as read',
-                      onPressed: () {
-                        // TODO: Implement mark all as read
-                      },
+                      onPressed: () => _notificationService.markAllAsRead(userId),
                     ),
                   ],
                 ),
@@ -98,7 +98,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             notification: notification,
                             onTap: () {
                               _notificationService.markAsRead(notification.notificationId);
-                              // TODO: Navigate based on notification type
+                              _openNotification(notification);
                             },
                           ),
                         );
@@ -112,6 +112,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ),
       ),
     );
+  }
+
+  void _openNotification(NotificationModel notification) {
+    if (notification.relatedEventId != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EventDetailsScreen(eventId: notification.relatedEventId!),
+        ),
+      );
+      return;
+    }
+    if (notification.relatedClubId != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ClubDetailsScreen(clubId: notification.relatedClubId!),
+        ),
+      );
+    }
   }
 }
 
