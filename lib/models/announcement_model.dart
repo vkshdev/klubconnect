@@ -42,9 +42,15 @@ class AnnouncementModel {
       postedByRole: data['posted_by_role'] ?? '',
       mediaUrls: List<String>.from(data['media_urls'] ?? []),
       isPinned: data['is_pinned'] ?? false,
-      createdAt: (data['created_at'] as Timestamp).toDate(),
+      createdAt: _dateFrom(data['created_at']),
       viewsCount: data['views_count'] ?? 0,
     );
+  }
+
+  static DateTime _dateFrom(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
   }
 
   Map<String, dynamic> toFirestore() {
