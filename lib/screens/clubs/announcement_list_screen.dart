@@ -3,18 +3,21 @@ import 'package:provider/provider.dart';
 import '../../models/announcement_model.dart';
 import '../../services/announcement_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/club_service.dart';
 import '../../services/firestore_service.dart';
-import '../../models/user_model.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/glass_card.dart';
 import 'package:intl/intl.dart';
 
 class AnnouncementListScreen extends StatefulWidget {
   final String clubId;
+  final String clubName;
   final bool canPost;
 
   const AnnouncementListScreen({
     super.key,
     required this.clubId,
+    required this.clubName,
     this.canPost = false,
   });
 
@@ -24,6 +27,8 @@ class AnnouncementListScreen extends StatefulWidget {
 
 class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
   final AnnouncementService _announcementService = AnnouncementService();
+  final ClubService _clubService = ClubService();
+  final NotificationService _notificationService = NotificationService();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   bool _isPosting = false;
@@ -53,7 +58,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: _postAnnouncement,
+            onPressed: _isPosting ? null : _postAnnouncement,
             child: const Text('Post'),
           ),
         ],
@@ -73,7 +78,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
       final announcement = AnnouncementModel(
         announcementId: '', // Service handles ID
         clubId: widget.clubId,
-        clubName: '', // Could fetch club name if needed
+        clubName: widget.clubName,
         title: _titleController.text.trim(),
         content: _contentController.text.trim(),
         postedById: user.uid,
@@ -83,6 +88,20 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
       );
 
       await _announcementService.postAnnouncement(announcement);
+      final club = await _clubService.getClubById(widget.clubId);
+      if (club != null) {
+        for (final memberId in club.members) {
+          if (memberId == user.uid) continue;
+          await _notificationService.sendNotification(
+            userId: memberId,
+            type: 'announcement',
+            title: 'New announcement in ${widget.clubName}',
+            message: _titleController.text.trim(),
+            fromUserId: user.uid,
+            relatedClubId: widget.clubId,
+          );
+        }
+      }
       _titleController.clear();
       _contentController.clear();
       if (mounted) {
