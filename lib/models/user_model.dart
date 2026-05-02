@@ -90,12 +90,12 @@ class UserModel {
       fullName: data['full_name'] ?? '',
       userType: data['user_type'] ?? '',
       gender: data['gender'] ?? '',
-      dateOfBirth: (data['date_of_birth'] as Timestamp).toDate(),
+      dateOfBirth: _dateFrom(data['date_of_birth']),
       collegeName: data['college_name'] ?? '',
       profileImageUrl: data['profile_image_url'],
       about: data['about'],
-      createdAt: (data['created_at'] as Timestamp).toDate(),
-      updatedAt: (data['updated_at'] as Timestamp).toDate(),
+      createdAt: _dateFrom(data['created_at']),
+      updatedAt: _dateFrom(data['updated_at']),
       isActive: data['is_active'] ?? true,
       profileCompleted: data['profile_completed'] ?? false,
       enrollmentNumber: data['enrollment_number'],
@@ -126,6 +126,12 @@ class UserModel {
           ? List<String>.from(data['is_organizer_of'])
           : [],
     );
+  }
+
+  static DateTime _dateFrom(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
   }
 
   // To Firestore
