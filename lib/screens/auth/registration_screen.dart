@@ -117,7 +117,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         child: Column(
           children: [
             Text(
-              isStartYear ? 'Select Start Year' : 'Select End Year',
+              isStartYear ? 'Select Start Year' : 'Select Joined Year',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -139,7 +139,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             );
                           }
                         } else {
-                          _sessionEndYear = years[index];
+                          _collegeJoinedYear = years[index];
                         }
                       });
                       Navigator.pop(context);
