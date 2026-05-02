@@ -1,136 +1,126 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+
 import '../models/club_model.dart';
-import '../models/membership_request_model.dart';
+import '../models/user_model.dart';
+import '../utils/constants.dart';
 
 class ClubService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Create Club
   Future<void> createClub(ClubModel club) async {
-    try {
-      await _firestore.collection('clubs').doc(club.clubId).set(club.toFirestore());
-      
-      // Update faculty's clubs_created
-      await _firestore.collection('users').doc(club.clubMasterId).update({
-        'clubs_created': FieldValue.arrayUnion([club.clubId])
-      });
-      
-      // Update president's role
-      await _firestore.collection('users').doc(club.presidentId).update({
-        'is_president_of': FieldValue.arrayUnion([club.clubId]),
-        'clubs_joined': FieldValue.arrayUnion([club.clubId])
-      });
-    } catch (e) {
-      rethrow;
-    }
+    final batch = _firestore.batch();
+    final clubRef = _firestore.collection(AppConstants.clubsCollection).doc(club.clubId);
+    final masterRef = _firestore.collection(AppConstants.usersCollection).doc(club.clubMasterId);
+    final presidentRef = _firestore.collection(AppConstants.usersCollection).doc(club.presidentId);
+
+    batch.set(clubRef, club.toFirestore());
+    batch.update(masterRef, {
+      'clubs_created': FieldValue.arrayUnion([club.clubId]),
+      'updated_at': FieldValue.serverTimestamp(),
+    });
+    batch.update(presidentRef, {
+      'is_president_of': FieldValue.arrayUnion([club.clubId]),
+      'clubs_joined': FieldValue.arrayUnion([club.clubId]),
+      'updated_at': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 
-  // Get Clubs by College
   Stream<List<ClubModel>> getClubsByCollege(String collegeName) {
     return _firestore
-        .collection('clubs')
+        .collection(AppConstants.clubsCollection)
         .where('college_name', isEqualTo: collegeName)
         .where('is_active', isEqualTo: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ClubModel.fromFirestore(doc))
-            .toList());
+        .map((snapshot) => snapshot.docs.map(ClubModel.fromFirestore).toList());
   }
 
-  // Get Club by ID
-  Stream<ClubModel> streamClub(String clubId) {
+  Stream<List<ClubModel>> getClubsForUser(List<String> clubIds) {
+    if (clubIds.isEmpty) return Stream.value([]);
     return _firestore
-        .collection('clubs')
-        .doc(clubId)
+        .collection(AppConstants.clubsCollection)
+        .where(FieldPath.documentId, whereIn: clubIds.take(10).toList())
         .snapshots()
-        .map((doc) => ClubModel.fromFirestore(doc));
+        .map((snapshot) => snapshot.docs.map(ClubModel.fromFirestore).toList());
   }
 
-  // Send Membership Request
-  Future<void> sendJoinRequest({
-    required String clubId,
-    required String clubName,
-    required String userId,
-    required String userName,
-    String? message,
-  }) async {
-    final requestId = '${clubId}_$userId';
-    final request = MembershipRequestModel(
-      requestId: requestId,
-      clubId: clubId,
-      clubName: clubName,
-      userId: userId,
-      userName: userName,
-      message: message,
-      requestedAt: DateTime.now(),
-    );
-
-    await _firestore
-        .collection('membership_requests')
-        .doc(requestId)
-        .set(request.toFirestore());
-  }
-
-  // Handle Membership Request
-  Future<void> respondToRequest({
-    required MembershipRequestModel request,
-    required RequestStatus status,
-    required String respondedById,
-  }) async {
-    final batch = _firestore.batch();
-    
-    final requestRef = _firestore.collection('membership_requests').doc(request.requestId);
-    batch.update(requestRef, {
-      'status': status.name,
-      'responded_at': FieldValue.serverTimestamp(),
-      'responded_by_id': respondedById,
+  Stream<ClubModel?> streamClub(String clubId) {
+    return _firestore.collection(AppConstants.clubsCollection).doc(clubId).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return ClubModel.fromFirestore(doc);
     });
+  }
 
-    if (status == RequestStatus.approved) {
-      // Add user to club members
-      final clubRef = _firestore.collection('clubs').doc(request.clubId);
-      batch.update(clubRef, {
-        'members': FieldValue.arrayUnion([request.userId]),
-        'total_members': FieldValue.increment(1),
-      });
+  Future<ClubModel?> getClubById(String clubId) async {
+    final doc = await _firestore.collection(AppConstants.clubsCollection).doc(clubId).get();
+    if (!doc.exists) return null;
+    return ClubModel.fromFirestore(doc);
+  }
 
-      // Update user's joined clubs
-      final userRef = _firestore.collection('users').doc(request.userId);
-      batch.update(userRef, {
-        'clubs_joined': FieldValue.arrayUnion([request.clubId]),
-      });
+  Stream<List<UserModel>> streamCollegeStudents(String collegeName) {
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .where('college_name', isEqualTo: collegeName)
+        .where('user_type', isEqualTo: AppConstants.userTypeStudent)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map(UserModel.fromFirestore).toList());
+  }
+
+  Stream<List<UserModel>> streamClubMembers(List<String> memberIds) {
+    if (memberIds.isEmpty) return Stream.value([]);
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .where(FieldPath.documentId, whereIn: memberIds.take(10).toList())
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map(UserModel.fromFirestore).toList());
+  }
+
+  Stream<List<ClubModel>> searchClubs({
+    required String collegeName,
+    String query = '',
+    String? category,
+  }) {
+    Query<Map<String, dynamic>> ref = _firestore
+        .collection(AppConstants.clubsCollection)
+        .where('college_name', isEqualTo: collegeName)
+        .where('is_active', isEqualTo: true);
+
+    if (category != null && category.isNotEmpty && category != 'All') {
+      ref = ref.where('category', isEqualTo: category);
     }
 
-    await batch.commit();
+    final normalizedQuery = query.trim().toLowerCase();
+    return ref.snapshots().map((snapshot) {
+      final clubs = snapshot.docs.map(ClubModel.fromFirestore).toList();
+      if (normalizedQuery.isEmpty) return clubs;
+      return clubs
+          .where((club) =>
+              club.name.toLowerCase().contains(normalizedQuery) ||
+              club.category.toLowerCase().contains(normalizedQuery) ||
+              club.description.toLowerCase().contains(normalizedQuery))
+          .toList();
+    });
   }
 
-  // Get Pending Requests for Club
-  Stream<List<MembershipRequestModel>> getPendingRequests(String clubId) {
-    return _firestore
-        .collection('membership_requests')
-        .where('club_id', isEqualTo: clubId)
-        .where('status', isEqualTo: RequestStatus.pending.name)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => MembershipRequestModel.fromFirestore(doc))
-            .toList());
+  Future<void> updateClub(String clubId, Map<String, dynamic> updates) async {
+    await _firestore.collection(AppConstants.clubsCollection).doc(clubId).update({
+      ...updates,
+      'updated_at': FieldValue.serverTimestamp(),
+    });
   }
 
-  // Leave Club
-  Future<void> leaveClub(String clubId, String userId) async {
-    final batch = _firestore.batch();
-
-    final clubRef = _firestore.collection('clubs').doc(clubId);
-    batch.update(clubRef, {
-      'members': FieldValue.arrayRemove([userId]),
-      'total_members': FieldValue.increment(-1),
-    });
-
-    final userRef = _firestore.collection('users').doc(userId);
-    batch.update(userRef, {
-      'clubs_joined': FieldValue.arrayRemove([clubId]),
-    });
-
-    await batch.commit();
+  Future<String> uploadClubImage({
+    required String clubId,
+    required File image,
+    required String fileName,
+  }) async {
+    final ref = _storage.ref().child('clubs').child(clubId).child(fileName);
+    await ref.putFile(image);
+    return ref.getDownloadURL();
   }
 }
