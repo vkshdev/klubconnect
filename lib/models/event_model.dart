@@ -9,6 +9,7 @@ class EventModel {
   final String clubId;
   final String clubName;
   final String clubColor;
+  final String collegeName;
   final String createdById;
   final String createdByName;
   final String createdByRole;
@@ -32,6 +33,7 @@ class EventModel {
     required this.clubId,
     required this.clubName,
     required this.clubColor,
+    required this.collegeName,
     required this.createdById,
     required this.createdByName,
     required this.createdByRole,
@@ -58,10 +60,11 @@ class EventModel {
       clubId: data['club_id'] ?? '',
       clubName: data['club_name'] ?? '',
       clubColor: data['club_color'] ?? '#000000',
+      collegeName: data['college_name'] ?? '',
       createdById: data['created_by_id'] ?? '',
       createdByName: data['created_by_name'] ?? '',
       createdByRole: data['created_by_role'] ?? '',
-      eventDate: (data['event_date'] as Timestamp).toDate(),
+      eventDate: _dateFrom(data['event_date']),
       eventTime: data['event_time'] ?? '',
       location: data['location'] ?? '',
       venueType: data['venue_type'] ?? 'offline',
@@ -74,9 +77,15 @@ class EventModel {
         (e) => e.name == (data['status'] ?? 'pending'),
         orElse: () => EventStatus.pending,
       ),
-      createdAt: (data['created_at'] as Timestamp).toDate(),
-      updatedAt: (data['updated_at'] as Timestamp).toDate(),
+      createdAt: _dateFrom(data['created_at']),
+      updatedAt: _dateFrom(data['updated_at']),
     );
+  }
+
+  static DateTime _dateFrom(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
   }
 
   Map<String, dynamic> toFirestore() {
@@ -86,6 +95,7 @@ class EventModel {
       'club_id': clubId,
       'club_name': clubName,
       'club_color': clubColor,
+      'college_name': collegeName,
       'created_by_id': createdById,
       'created_by_name': createdByName,
       'created_by_role': createdByRole,
@@ -124,8 +134,14 @@ class EventRSVP {
       userId: doc.id,
       userName: data['user_name'] ?? '',
       response: data['response'] ?? 'interested',
-      respondedAt: (data['responded_at'] as Timestamp).toDate(),
+      respondedAt: _dateFrom(data['responded_at']),
     );
+  }
+
+  static DateTime _dateFrom(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
   }
 
   Map<String, dynamic> toFirestore() {
