@@ -40,9 +40,9 @@ class MembershipRequestModel {
         orElse: () => RequestStatus.pending,
       ),
       message: data['message'],
-      requestedAt: (data['requested_at'] as Timestamp).toDate(),
+      requestedAt: _dateFrom(data['requested_at']),
       respondedAt: data['responded_at'] != null
-          ? (data['responded_at'] as Timestamp).toDate()
+          ? _dateFrom(data['responded_at'])
           : null,
       respondedById: data['responded_by_id'],
     );
@@ -60,5 +60,11 @@ class MembershipRequestModel {
       'responded_at': respondedAt != null ? Timestamp.fromDate(respondedAt!) : null,
       'responded_by_id': respondedById,
     };
+  }
+
+  static DateTime _dateFrom(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
   }
 }
