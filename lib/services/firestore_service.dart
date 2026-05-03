@@ -66,6 +66,27 @@ class FirestoreService {
     });
   }
 
+  Stream<List<UserModel>> searchUsersByCollege({
+    required String collegeName,
+    String query = '',
+  }) {
+    final normalizedQuery = query.trim().toLowerCase();
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .where('college_name', isEqualTo: collegeName)
+        .snapshots()
+        .map((snapshot) {
+      final users = snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
+      if (normalizedQuery.isEmpty) return users;
+      return users
+          .where((user) =>
+              user.fullName.toLowerCase().contains(normalizedQuery) ||
+              user.email.toLowerCase().contains(normalizedQuery) ||
+              (user.enrollmentNumber ?? '').toLowerCase().contains(normalizedQuery))
+          .toList();
+    });
+  }
+
   // Update User Profile
   Future<void> updateUserProfile({
     required String uid,
