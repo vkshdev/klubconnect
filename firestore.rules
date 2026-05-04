@@ -1,80 +1,134 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if user is authenticated
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Helper to get user data
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
     }
 
-    // Users Collection
+    function currentUser() {
+      return userDoc(request.auth.uid).data;
+    }
+
+    function sameCollege(collegeName) {
+      return isSignedIn() && currentUser().college_name == collegeName;
+    }
+
+    function clubDoc(clubId) {
+      return get(/databases/$(database)/documents/clubs/$(clubId));
+    }
+
+    function sameCollegeAsClub(clubId) {
+      return sameCollege(clubDoc(clubId).data.college_name);
+    }
+
+    function isClubMaster(clubId) {
+      return isSignedIn() && clubDoc(clubId).data.club_master_id == request.auth.uid;
+    }
+
+    function isClubPresident(clubId) {
+      return isSignedIn() && clubDoc(clubId).data.president_id == request.auth.uid;
+    }
+
+    function isClubOrganizer(clubId) {
+      return isSignedIn() && request.auth.uid in clubDoc(clubId).data.organizers;
+    }
+
+    function isClubManager(clubId) {
+      return isClubMaster(clubId) || isClubPresident(clubId);
+    }
+
+    function isClubRoleHolder(clubId) {
+      return isClubManager(clubId) || isClubOrganizer(clubId);
+    }
+
+    function isRsvpCountUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'current_participants',
+        'interested_count',
+        'not_going_count',
+        'updated_at'
+      ]);
+    }
+
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && sameCollege(resource.data.college_name);
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (
+        request.auth.uid == userId ||
+        (
+          sameCollege(resource.data.college_name) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'clubs_joined',
+            'clubs_created',
+            'is_president_of',
+            'is_organizer_of',
+            'updated_at'
+          ])
+        )
+      );
     }
 
-    // Clubs Collection
     match /clubs/{clubId} {
-      allow read: if isSignedIn();
-      // Only faculty can create clubs
-      allow create: if isSignedIn() && getUserData().user_type == 'faculty';
-      // Only Club Master or President can update club info
-      allow update: if isSignedIn() && (
-        resource.data.club_master_id == request.auth.uid || 
-        resource.data.president_id == request.auth.uid
-      );
+      allow read: if isSignedIn() && sameCollege(resource.data.college_name);
+      allow create: if isSignedIn()
+        && currentUser().user_type == 'faculty'
+        && request.resource.data.club_master_id == request.auth.uid
+        && request.resource.data.college_name == currentUser().college_name;
+      allow update: if isClubManager(clubId) && sameCollege(resource.data.college_name);
+      allow delete: if false;
     }
 
-    // Events Collection
     match /events/{eventId} {
-      allow read: if isSignedIn();
-      // Club Master or President can create events
-      allow create: if isSignedIn(); 
-      allow update: if isSignedIn() && (
-        resource.data.created_by_id == request.auth.uid || 
-        get(/databases/$(database)/documents/clubs/$(resource.data.club_id)).data.club_master_id == request.auth.uid ||
-        get(/databases/$(database)/documents/clubs/$(resource.data.club_id)).data.president_id == request.auth.uid
-      );
+      allow read: if isSignedIn() && sameCollege(resource.data.college_name);
+      allow create: if isSignedIn()
+        && sameCollege(request.resource.data.college_name)
+        && sameCollegeAsClub(request.resource.data.club_id)
+        && isClubRoleHolder(request.resource.data.club_id);
+      allow update: if isSignedIn()
+        && sameCollege(resource.data.college_name)
+        && (
+          isRsvpCountUpdate() ||
+          (request.resource.data.status != resource.data.status && isClubMaster(resource.data.club_id)) ||
+          (request.resource.data.status == resource.data.status && (
+            resource.data.created_by_id == request.auth.uid ||
+            isClubRoleHolder(resource.data.club_id)
+          ))
+        );
+      allow delete: if false;
 
-      // RSVP Subcollection
       match /rsvps/{userId} {
-        allow read: if isSignedIn();
+        allow read: if isSignedIn() && sameCollegeAsClub(get(/databases/$(database)/documents/events/$(eventId)).data.club_id);
         allow write: if isSignedIn() && request.auth.uid == userId;
       }
     }
 
-    // Membership Requests
     match /membership_requests/{requestId} {
       allow read: if isSignedIn() && (
-        resource.data.user_id == request.auth.uid || 
-        get(/databases/$(database)/documents/clubs/$(resource.data.club_id)).data.club_master_id == request.auth.uid ||
-        get(/databases/$(database)/documents/clubs/$(resource.data.club_id)).data.president_id == request.auth.uid
+        resource.data.user_id == request.auth.uid ||
+        isClubManager(resource.data.club_id)
       );
-      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
-      allow update: if isSignedIn() && (
-        get(/databases/$(database)/documents/clubs/$(resource.data.club_id)).data.club_master_id == request.auth.uid ||
-        get(/databases/$(database)/documents/clubs/$(resource.data.club_id)).data.president_id == request.auth.uid
-      );
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid
+        && sameCollegeAsClub(request.resource.data.club_id);
+      allow update: if isClubManager(resource.data.club_id);
+      allow delete: if false;
     }
-    
-    // Phase 3 Collections (Added in advance)
+
     match /notifications/{notificationId} {
-      allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
-      allow write: if false; // System generated
+      allow read, update: if isSignedIn() && resource.data.user_id == request.auth.uid;
+      allow create: if isSignedIn()
+        && userDoc(request.resource.data.user_id).data.college_name == currentUser().college_name;
+      allow delete: if false;
     }
-    
+
     match /announcements/{announcementId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && (
-        get(/databases/$(database)/documents/clubs/$(request.resource.data.club_id)).data.club_master_id == request.auth.uid ||
-        get(/databases/$(database)/documents/clubs/$(request.resource.data.club_id)).data.president_id == request.auth.uid
-      );
+      allow read: if isSignedIn() && sameCollegeAsClub(resource.data.club_id);
+      allow create: if isClubManager(request.resource.data.club_id);
+      allow update, delete: if isClubManager(resource.data.club_id);
     }
   }
 }
