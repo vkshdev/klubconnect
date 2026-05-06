@@ -6,7 +6,7 @@ import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import '../../utils/constants.dart';
 import '../../utils/validators.dart';
-import 'otp_verification_screen.dart';
+import 'profile_setup_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
   final String userType; // 'student' or 'faculty'
@@ -230,14 +230,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      // Navigate to OTP verification
+      // Navigate directly to Profile Setup (Skipping OTP)
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => OTPVerificationScreen(
-              phoneNumber: '+91${_phoneController.text.trim()}',
-            ),
+            builder: (context) => const ProfileSetupScreen(),
           ),
         );
       }
@@ -249,73 +247,95 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(isStudent ? 'Student Registration' : 'Faculty Registration'),
+        title: Text(
+          isStudent ? 'Student Registration' : 'Faculty Registration',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Form(
-        key: _formKey,
-        child: Column(
-          children: [
-            // Progress Indicator
-            LinearProgressIndicator(
-              value: (_currentPage + 1) / (isStudent ? 3 : 2),
-              backgroundColor: Colors.grey.shade200,
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).primaryColor.withOpacity(0.8),
+              Theme.of(context).primaryColor.withOpacity(0.4),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                // Progress Indicator
+                LinearProgressIndicator(
+                  value: (_currentPage + 1) / (isStudent ? 3 : 2),
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
 
-            // Page View
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (index) {
-                  setState(() => _currentPage = index);
-                },
-                children: [
-                  _buildPersonalInfoPage(),
-                  _buildAcademicInfoPage(),
-                  if (isStudent) _buildStudentDetailsPage(),
-                ],
-              ),
-            ),
-
-            // Navigation Buttons
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
+                // Page View
+                Expanded(
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onPageChanged: (index) {
+                      setState(() => _currentPage = index);
+                    },
+                    children: [
+                      _buildPersonalInfoPage(),
+                      _buildAcademicInfoPage(),
+                      if (isStudent) _buildStudentDetailsPage(),
+                    ],
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  if (_currentPage > 0)
-                    Expanded(
-                      child: CustomOutlineButton(
-                        text: 'Back',
-                        onPressed: _previousPage,
-                        height: 50,
+                ),
+
+                // Navigation Buttons
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    border: Border(
+                      top: BorderSide(color: Colors.white.withOpacity(0.2)),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      if (_currentPage > 0)
+                        Expanded(
+                          child: CustomOutlineButton(
+                            text: 'Back',
+                            onPressed: _previousPage,
+                            height: 50,
+                            textColor: Colors.white,
+                            borderColor: Colors.white,
+                          ),
+                        ),
+                      if (_currentPage > 0) const SizedBox(width: 16),
+                      Expanded(
+                        flex: _currentPage > 0 ? 1 : 2,
+                        child: CustomButton(
+                          text: _currentPage == (isStudent ? 2 : 1) ? 'Register' : 'Next',
+                          onPressed: _nextPage,
+                          isLoading: _isLoading,
+                          height: 50,
+                          backgroundColor: Colors.white,
+                          textColor: Theme.of(context).primaryColor,
+                        ),
                       ),
-                    ),
-                  if (_currentPage > 0) const SizedBox(width: 16),
-                  Expanded(
-                    flex: _currentPage > 0 ? 1 : 2,
-                    child: CustomButton(
-                      text: _currentPage == (isStudent ? 2 : 1) ? 'Register' : 'Next',
-                      onPressed: _nextPage,
-                      isLoading: _isLoading,
-                      height: 50,
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -331,6 +351,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             'Personal Information',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 24),
@@ -355,7 +376,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
           CustomTextField(
             label: 'Email Address',
-            hint: 'student@college.edu',
+            hint: 'yourname@gmail.com',
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             validator: Validators.validateEmail,
@@ -403,7 +424,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+                color: Colors.white.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -411,7 +432,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today, color: Colors.grey),
+                      Icon(Icons.calendar_today, color: Theme.of(context).primaryColor),
                       const SizedBox(width: 12),
                       Text(
                         _selectedDOB != null
@@ -420,12 +441,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         style: TextStyle(
                           color: _selectedDOB != null
                               ? Colors.black87
-                              : Colors.grey,
+                              : Colors.grey.shade600,
                         ),
                       ),
                     ],
                   ),
-                  const Icon(Icons.arrow_forward_ios, size: 16),
+                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                 ],
               ),
             ),
@@ -457,6 +478,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             isStudent ? 'Academic Information' : 'Professional Information',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 24),
@@ -476,7 +498,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 '⚠️ Must match your student ID card exactly',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.orange.shade700,
+                  color: Colors.white.withOpacity(0.9),
                 ),
               ),
             ),
@@ -517,7 +539,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
+                  color: Colors.white.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -525,7 +547,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today, color: Colors.grey),
+                        Icon(Icons.calendar_today, color: Theme.of(context).primaryColor),
                         const SizedBox(width: 12),
                         Text(
                           _sessionStartYear != null
@@ -534,12 +556,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           style: TextStyle(
                             color: _sessionStartYear != null
                                 ? Colors.black87
-                                : Colors.grey,
+                                : Colors.grey.shade600,
                           ),
                         ),
                       ],
                     ),
-                    const Icon(Icons.arrow_forward_ios, size: 16),
+                    const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                   ],
                 ),
               ),
@@ -597,7 +619,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
+                  color: Colors.white.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -605,7 +627,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today, color: Colors.grey),
+                        Icon(Icons.calendar_today, color: Theme.of(context).primaryColor),
                         const SizedBox(width: 12),
                         Text(
                           _collegeJoinedYear != null
@@ -614,12 +636,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           style: TextStyle(
                             color: _collegeJoinedYear != null
                                 ? Colors.black87
-                                : Colors.grey,
+                                : Colors.grey.shade600,
                           ),
                         ),
                       ],
                     ),
-                    const Icon(Icons.arrow_forward_ios, size: 16),
+                    const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                   ],
                 ),
               ),
@@ -649,6 +671,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             'Additional Details',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 24),
@@ -662,51 +685,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               if (value == null || value.isEmpty) {
                 return 'Address is required';
               }
-              if (value.length < 20) {
-                return 'Please provide complete address (min 20 characters)';
+              if (value.length < 10) {
+                return 'Please provide a valid address';
               }
               return null;
             },
             prefixIcon: Icons.home,
-          ),
-
-          const SizedBox(height: 24),
-
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade700),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Next Steps',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '• Phone number verification via OTP\n'
-                      '• Complete profile setup with photo\n'
-                      '• Start exploring clubs!',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.blue.shade900,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
