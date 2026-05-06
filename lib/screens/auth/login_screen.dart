@@ -36,44 +36,22 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     final authService = Provider.of<AuthService>(context, listen: false);
 
-    if (_useMagicLink) {
-      final result = await authService.sendMagicLink(_emailController.text.trim());
-      setState(() => _isLoading = false);
-      Fluttertoast.showToast(msg: result['message']);
-      if (result['success']) {
-        // Show guidance to user
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Check your Email'),
-            content: const Text('We have sent a login link to your email address. Please click the link to sign in.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+    final result = await authService.signInWithEmailPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
         );
       }
     } else {
-      final result = await authService.signInWithEmailPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      setState(() => _isLoading = false);
-
-      if (result['success']) {
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-            (route) => false,
-          );
-        }
-      } else {
-        Fluttertoast.showToast(msg: result['message']);
-      }
+      Fluttertoast.showToast(msg: result['message']);
     }
   }
 
@@ -121,10 +99,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.groups_rounded,
-                      size: 50,
-                      color: Color(0xFF2196F3),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -158,32 +138,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           prefixIcon: Icons.email,
                         ),
                         const SizedBox(height: 20),
-                        if (!_useMagicLink)
-                          CustomTextField(
-                            label: 'Password',
-                            hint: 'Enter your password',
-                            controller: _passwordController,
-                            obscureText: true,
-                            validator: (value) => (value == null || value.isEmpty) ? 'Password is required' : null,
-                            prefixIcon: Icons.lock,
-                          ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Use Passwordless Login?',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                            Switch(
-                              value: _useMagicLink,
-                              onChanged: (val) => setState(() => _useMagicLink = val),
-                            ),
-                          ],
+                        CustomTextField(
+                          label: 'Password',
+                          hint: 'Enter your password',
+                          controller: _passwordController,
+                          obscureText: true,
+                          validator: (value) => (value == null || value.isEmpty) ? 'Password is required' : null,
+                          prefixIcon: Icons.lock,
                         ),
                         const SizedBox(height: 24),
                         CustomButton(
-                          text: _useMagicLink ? 'Send Login Link' : 'Login',
+                          text: 'Login',
                           onPressed: _login,
                           isLoading: _isLoading,
                         ),
