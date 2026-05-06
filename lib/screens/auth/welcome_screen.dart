@@ -45,10 +45,12 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.groups_rounded,
-                    size: 60,
-                    color: Color(0xFF2196F3),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
 
@@ -76,7 +78,7 @@ class WelcomeScreen extends StatelessWidget {
 
                 const Spacer(),
 
-                // Selection Cards - Updated to navigate to LoginScreen
+                // Selection Cards - Updated to navigate to RegistrationScreen with correct userType
                 GlassCard(
                   margin: const EdgeInsets.only(bottom: 16),
                   child: InkWell(
@@ -84,7 +86,9 @@ class WelcomeScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
+                          builder: (context) => const RegistrationScreen(
+                            userType: AppConstants.userTypeStudent,
+                          ),
                         ),
                       );
                     },
@@ -142,7 +146,9 @@ class WelcomeScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
+                          builder: (context) => const RegistrationScreen(
+                            userType: AppConstants.userTypeFaculty,
+                          ),
                         ),
                       );
                     },
@@ -196,30 +202,27 @@ class WelcomeScreen extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
-                // Register Link - Swapped with Login
+                // Login Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Don't have an account? ",
+                      "Already have an account? ",
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
                       ),
                     ),
                     TextButton(
                       onPressed: () {
-                        // Default to student registration or show a choice
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const RegistrationScreen(
-                              userType: AppConstants.userTypeStudent,
-                            ),
+                            builder: (context) => const LoginScreen(),
                           ),
                         );
                       },
                       child: const Text(
-                        'Register',
+                        'Login',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
