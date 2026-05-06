@@ -1,75 +1,68 @@
-
-# KlubConnect
+# <img src="assets/icons/logo_icon.png" width="40" height="40" /> KlubConnect
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)
 ![Firebase](https://img.shields.io/badge/Firebase-Integrated-orange.svg)
 ![Status](https://img.shields.io/badge/Status-Complete-success.svg)
+![Platform](https://img.shields.io/badge/Platform-Android-green.svg)
 
-**Connect through your clubs and build your community**
+**Connect Through Clubs - Your Campus, Your Community**
 
-KlubConnect is a comprehensive college club management and social networking platform built with Flutter and Firebase, designed to simplify communication, club engagement, and event management for students and faculty.
-
----
-
-## **Project Phases Completed**
-
-### **Phase 1 - Authentication and Basic User Module**
-- **User Authentication**: Email/Password and Phone OTP (Firebase)
-- **Student and Faculty Registration**: Multi-page registration forms with validation
-- **Profile Setup**: Profile image upload and detailed user information
-- **Glass Morphism UI**: Modern, transparent design language used throughout the app
-
-### **Phase 2 - Clubs and Events Management**
-- **Club Management**: Faculty can create clubs; Students can browse and join clubs
-- **Event Workflow**: Presidents/Organizers can propose events for approval by Club Masters
-- **RSVP System**: Students can RSVP (Yes, Interested, No) with real-time participant counts
-- **Membership Management**: Role assignment (Club Master, President, Organizer) and join request approvals
-
-### **Phase 3 - Calendar, Notifications and Announcements**
-- **Event Calendar**: Monthly/Weekly view for tracking all approved college events
-- **Announcements**: Club leaders can post and pin important announcements
-- **Global Search**: Search for clubs, events, and users with integrated filters
-- **Notifications**: In-app and push notifications for join requests, event approvals, and more
-- **Profile Enhancements**: Edit profile screen with privacy controls for enrollment visibility
+KlubConnect is a professional college club management and social networking platform. Built with Flutter and Firebase, it provides a seamless experience for students to engage in campus life and for faculty to oversee and mentor college organizations.
 
 ---
 
-## **Tech Stack**
-- **Frontend**: Flutter (Dart)
-- **Backend**: Firebase (Auth, Firestore, Storage, Messaging)
-- **State Management**: Provider
-- **Design System**: Custom Glass Morphism UI
+##  Key Features
+
+### **Unified Authentication & Onboarding**
+- **Multi-Role Support**: Distinct registration and dashboards for **Students** and **Faculty**.
+- **Secure Auth**: Robust Email/Password authentication via Firebase Auth.
+- **Streamlined Onboarding**: Direct profile setup post-registration with a simplified flow for Faculty (no enrollment required).
+- **Profile Customization**: Personalize profiles with photos, bios, and academic details.
+
+### **Club Management Ecosystem**
+- **Discover & Join**: Browse college-specific clubs with category filters (Technical, Cultural, Sports, etc.).
+- **Role-Based Governance**: Dedicated controls for **Club Masters** (Faculty), **Presidents**, and **Organizers**.
+- **Membership Workflow**: Transparent join request and approval system.
+- **Member Directory**: View and connect with fellow club members.
+
+### **Dynamic Event Management**
+- **Lifecycle Management**: From proposal (by Organizers/Presidents) to approval (by Club Masters).
+- **Interactive RSVP**: Real-time participant tracking with "Attending", "Interested", and "Not Going" options.
+- **Automated Calendars**: Centralized monthly/weekly views of all approved campus events.
+- **Banner Support**: High-quality event banners hosted on Firebase Storage.
+
+### **Communication & Engagement**
+- **Announcements**: Pin and broadcast important club news and updates.
+- **Real-time Notifications**: Instant alerts for event approvals, membership updates, and club activities.
+- **Global Search**: Find clubs, events, and users across the campus community.
+
+### **Modern User Experience**
+- **Glassmorphic UI**: Premium, transparent design language with blur effects and gradients.
+- **Responsive Layouts**: Optimized for a smooth Android experience.
+- **Real-time Sync**: Live updates across the app using Firestore Snapshots.
 
 ---
 
-## **Installation and Setup**
+##  Tech Stack
 
-1. **Clone the repository**:
-   ```sh
-   git clone https://github.com/vikashmehta292511/klubconnect.git
-   ```
-
-2. **Install dependencies**:
-   ```sh
-   flutter pub get
-   ```
-
-3. **Firebase Configuration**:
-   - Add your google-services.json to android/app/
-   - Deploy Firestore and Storage rules using Firebase CLI:
-     ```sh
-     firebase deploy --only firestore,storage
-     ```
-
-4. **Run the app**:
-   ```sh
-   flutter run
-   ```
+- **Frontend Framework**: [Flutter](https://flutter.dev) (Dart)
+- **Backend Services**: [Firebase](https://firebase.google.com)
+  - **Authentication**: Secure identity management.
+  - **Cloud Firestore**: Real-time NoSQL database for users, clubs, and events.
+  - **Cloud Storage**: Secure hosting for profile images and event banners.
+  - **Cloud Messaging (FCM)**: Reliable push notification delivery.
+- **State Management**: [Provider](https://pub.dev/packages/provider)
+  - *Used for decoupled, reactive state updates across the app (Auth, UI states).*
+- **Architecture**: Service-Oriented (separated Services, Models, and UI layers).
 
 ---
 
-## **Security Features**
-- **Role-Based Access Control (RBAC)**: Enforced via Firestore Security Rules
-- **Input Sanitization**: All user inputs are trimmed and cleaned to prevent injection
-- **Strict Validation**: Comprehensive form validation for all critical user actions
-- **Secure File Storage**: Individual and club-level storage permissions
+##  Security & Privacy
+- **RBAC**: Strict Role-Based Access Control enforced at both the UI and Firestore Rule levels.
+- **Data Integrity**: Multi-step event approval workflows to ensure campus-appropriate content.
+- **Privacy Controls**: Users control visibility of sensitive academic information.
+
+---
+
+##  License
+This project is licensed under the [MIT License](LICENSE).
