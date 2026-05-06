@@ -56,7 +56,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 8),
@@ -70,10 +70,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
           enabled: widget.enabled,
           onChanged: widget.onChanged,
           inputFormatters: widget.inputFormatters,
+          style: const TextStyle(color: Colors.black87),
           decoration: InputDecoration(
             hintText: widget.hint,
+            hintStyle: TextStyle(color: Colors.grey.shade600),
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.9),
             prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon, color: Colors.grey)
+                ? Icon(widget.prefixIcon, color: Theme.of(context).primaryColor)
                 : null,
             suffixIcon: widget.obscureText
                 ? IconButton(
@@ -89,6 +93,21 @@ class _CustomTextFieldState extends State<CustomTextField> {
             )
                 : widget.suffixIcon,
             counterText: '',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Colors.white,
+                width: 2,
+              ),
+            ),
           ),
         ),
       ],
@@ -124,14 +143,33 @@ class CustomDropdown extends StatelessWidget {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: value,
+          style: const TextStyle(color: Colors.black87),
           decoration: InputDecoration(
             hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey.shade600),
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.9),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: Colors.white,
+                width: 2,
+              ),
+            ),
           ),
           items: items.map((String item) {
             return DropdownMenuItem<String>(
