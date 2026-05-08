@@ -1,7 +1,7 @@
 class AppConstants {
   // App Info
   static const String appName = 'KlubConnect';
-  static const String appTagline = 'Connect Through Clubs - Your Campus, Your Community';
+  static const String appTagline = 'Connect Through Clubs - Your College, Your Community';
 
   // User Types
   static const String userTypeStudent = 'student';
