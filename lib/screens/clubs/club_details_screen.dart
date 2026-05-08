@@ -280,7 +280,7 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
       return CustomButton(
         text: 'Leave Club',
         icon: Icons.logout,
-        backgroundColor: Colors.red.shade600,
+        gradient: LinearGradient(colors: [Colors.red.shade400, Colors.red.shade700]),
         onPressed: () => _leaveClub(club),
       );
     }
