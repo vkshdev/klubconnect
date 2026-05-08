@@ -68,6 +68,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   bool get isStudent => widget.userType == AppConstants.userTypeStudent;
+  bool get _isFinalPage => _currentPage == (isStudent ? 2 : 1);
+
+  String get _primaryButtonText {
+    if (!_isFinalPage) return 'Continue';
+    return isStudent ? 'Create Student Account' : 'Create Faculty Account';
+  }
 
   void _nextPage() {
     if (_formKey.currentState!.validate()) {
@@ -326,10 +332,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       Expanded(
                         flex: _currentPage > 0 ? 1 : 2,
                         child: CustomButton(
-                          text: _currentPage == (isStudent ? 2 : 1) ? 'Register' : 'Next',
+                          text: _primaryButtonText,
                           onPressed: _nextPage,
                           isLoading: _isLoading,
                           height: 50,
+                          icon: _isFinalPage ? Icons.verified_user_outlined : Icons.arrow_forward_rounded,
                           backgroundColor: Colors.white,
                           textColor: Theme.of(context).primaryColor,
                         ),
@@ -499,7 +506,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             Padding(
               padding: const EdgeInsets.only(left: 4),
               child: Text(
-                '⚠️ Must match your student ID card exactly',
+                'Must match your student ID card exactly',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.white.withOpacity(0.9),
