@@ -1,15 +1,19 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/user_model.dart';
-import '../../services/firestore_service.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_text_field.dart';
+import '../../services/firestore_service.dart';
 import '../../widgets/glass_card.dart';
-import '../../utils/validators.dart';
+import '../../widgets/custom_button.dart';
+import '../../utils/theme.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final UserModel user;
+
   const EditProfileScreen({super.key, required this.user});
 
   @override
@@ -17,64 +21,48 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _firestoreService = FirestoreService();
-  
-  late TextEditingController _firstNameController;
-  late TextEditingController _lastNameController;
-  late TextEditingController _aboutController;
-  late bool _enrollmentVisible;
-  
+  final _aboutController = TextEditingController();
   bool _isLoading = false;
+  File? _imageFile;
 
   @override
   void initState() {
     super.initState();
-    _firstNameController = TextEditingController(text: widget.user.firstName);
-    _lastNameController = TextEditingController(text: widget.user.lastName);
-    _aboutController = TextEditingController(text: widget.user.about);
-    _enrollmentVisible = widget.user.enrollmentVisible ?? true;
+    _aboutController.text = widget.user.about ?? '';
   }
 
-  @override
-  void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _aboutController.dispose();
-    super.dispose();
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (image != null) {
+      setState(() => _imageFile = File(image.path));
+    }
   }
 
   Future<void> _updateProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-
     try {
-      final updates = {
-        'first_name': _firstNameController.text.trim(),
-        'last_name': _lastNameController.text.trim(),
-        'full_name': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
-        'about': _aboutController.text.trim(),
-        'enrollment_visible': _enrollmentVisible,
-      };
+      String? imageUrl = widget.user.profileImageUrl;
+      if (_imageFile != null) {
+        final ref = FirebaseStorage.instance.ref().child('profiles/${widget.user.uid}/avatar.jpg');
+        await ref.putFile(_imageFile!);
+        imageUrl = await ref.getDownloadURL();
+      }
 
       await _firestoreService.updateUserProfile(
         uid: widget.user.uid,
-        updates: updates,
+        updates: {
+          'about': _aboutController.text.trim(),
+          'profile_image_url': imageUrl,
+        },
       );
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully!')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully')));
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -83,58 +71,130 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Profile')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              GlassCard(
-                child: Column(
-                  children: [
-                    CustomTextField(
-                      controller: _firstNameController,
-                      label: 'First Name',
-                      validator: Validators.validateRequired,
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      controller: _lastNameController,
-                      label: 'Last Name',
-                      validator: Validators.validateRequired,
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      controller: _aboutController,
-                      label: 'About',
-                      hint: 'Tell us something about yourself',
-                      maxLines: 3,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (widget.user.userType == 'student')
-                GlassCard(
-                  child: SwitchListTile(
-                    title: const Text('Show Enrollment Number'),
-                    subtitle: const Text('Control who can see your enrollment ID'),
-                    value: _enrollmentVisible,
-                    onChanged: (val) => setState(() => _enrollmentVisible = val),
-                    activeColor: Theme.of(context).primaryColor,
-                  ),
-                ),
-              const SizedBox(height: 32),
-              CustomButton(
-                text: 'Save Changes',
-                onPressed: _updateProfile,
-                isLoading: _isLoading,
-              ),
-            ],
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppBar(
+        title: const Text('Profile Settings'),
+        centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: _isLoading ? null : _updateProfile,
+            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            _buildAvatarSection(),
+            const SizedBox(height: 24),
+            _buildProfileInfo(),
+            const SizedBox(height: 24),
+            _buildAboutSection(),
+            const SizedBox(height: 32),
+            _buildAccountActions(),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAvatarSection() {
+    return Column(
+      children: [
+        Stack(
+          children: [
+            CircleAvatar(
+              radius: 50,
+              backgroundColor: AppTheme.borderColor,
+              backgroundImage: _imageFile != null 
+                  ? FileImage(_imageFile!) 
+                  : (widget.user.profileImageUrl != null ? NetworkImage(widget.user.profileImageUrl!) as ImageProvider : null),
+              child: (_imageFile == null && widget.user.profileImageUrl == null) 
+                  ? Text(widget.user.firstName[0], style: const TextStyle(fontSize: 32)) 
+                  : null,
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(widget.user.fullName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(widget.user.userType.toUpperCase(), style: const TextStyle(color: AppTheme.secondaryColor, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
+      ],
+    );
+  }
+
+  Widget _buildProfileInfo() {
+    return GlassCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          _buildInfoTile(Icons.email_outlined, 'Email', widget.user.email),
+          const Divider(height: 1, indent: 56),
+          _buildInfoTile(Icons.school_outlined, 'College', widget.user.collegeName),
+          const Divider(height: 1, indent: 56),
+          _buildInfoTile(Icons.phone_outlined, 'Phone', widget.user.phoneNumber ?? 'Not set'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(IconData icon, String label, String value) {
+    return ListTile(
+      leading: Icon(icon, color: AppTheme.secondaryColor, size: 22),
+      title: Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryColor)),
+      subtitle: Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.darkTextColor)),
+    );
+  }
+
+  Widget _buildAboutSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
+          child: Text('About Me', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        ),
+        TextField(
+          controller: _aboutController,
+          maxLines: 4,
+          style: const TextStyle(fontSize: 15),
+          decoration: InputDecoration(
+            hintText: 'Share a little about yourself...',
+            fillColor: Colors.white,
+            filled: true,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderColor)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccountActions() {
+    return Column(
+      children: [
+        CustomOutlineButton(
+          text: 'Log Out',
+          textColor: Colors.red,
+          borderColor: Colors.red.withOpacity(0.3),
+          onPressed: () => Provider.of<AuthService>(context, listen: false).signOut(),
+        ),
+      ],
     );
   }
 }
