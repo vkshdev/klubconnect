@@ -51,6 +51,14 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Text('Auth Error: ${snapshot.error}'),
+            ),
+          );
+        }
+
         if (snapshot.hasData) {
           return const HomeScreen();
         }
