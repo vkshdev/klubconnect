@@ -41,19 +41,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final uid = authService.currentUser?.uid;
-    if (uid == null) return;
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final uid = authService.currentUser?.uid;
+      if (uid == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
 
-    final user = await _firestoreService.getUserById(uid);
-    if (user != null) {
-      await _notificationService.initialize(userId: user.uid);
-    }
-    if (mounted) {
-      setState(() {
-        _currentUser = user;
-        _isLoading = false;
-      });
+      final user = await _firestoreService.getUserById(uid).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw Exception('Fetch user timeout'),
+      );
+
+      if (user != null) {
+        // Initialize notification service safely
+        try {
+          await _notificationService.initialize(userId: user.uid);
+        } catch (e) {
+          debugPrint('Notification init error: $e');
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -81,7 +103,21 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (_currentUser == null) {
-      return const Scaffold(body: Center(child: Text('Profile not found.')));
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Profile not found.'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Provider.of<AuthService>(context, listen: false).signOut(),
+                child: const Text('Back to Login'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return Scaffold(
