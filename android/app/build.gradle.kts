@@ -21,12 +21,8 @@ val hasReleaseSigning = listOf("storeFile", "storePassword", "keyAlias", "keyPas
 
 android {
     namespace = "com.example.klubconnect"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
-
-    base {
-        archivesName.set("KlubConnect-Release")
-    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -43,7 +39,7 @@ android {
     defaultConfig {
         applicationId = "com.example.klubconnect"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -71,9 +67,6 @@ android {
 }
 
 dependencies {
-    implementation(platform(libs.firebase.bom))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-messaging")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
 
