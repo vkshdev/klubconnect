@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/theme.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -9,6 +10,7 @@ class CustomButton extends StatelessWidget {
   final IconData? icon;
   final double? width;
   final double height;
+  final LinearGradient? gradient;
 
   const CustomButton({
     super.key,
@@ -19,7 +21,8 @@ class CustomButton extends StatelessWidget {
     this.textColor,
     this.icon,
     this.width,
-    this.height = 56,
+    this.height = 48,
+    this.gradient,
   });
 
   @override
@@ -30,37 +33,52 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
+          backgroundColor: gradient == null
+              ? backgroundColor ?? AppTheme.primaryColor
+              : Colors.transparent,
           foregroundColor: textColor ?? Colors.white,
+          disabledBackgroundColor: (backgroundColor ?? AppTheme.primaryColor).withOpacity(0.55),
           elevation: 0,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(18),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
         ),
-        child: isLoading
-            ? const SizedBox(
-          height: 24,
-          width: 24,
-          child: CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 2,
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(18),
           ),
-        )
-            : Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 20),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              text,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+          child: Center(
+            child: isLoading
+                ? SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      color: textColor ?? Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 18),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        text,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
@@ -84,7 +102,7 @@ class CustomOutlineButton extends StatelessWidget {
     this.textColor,
     this.icon,
     this.width,
-    this.height = 56,
+    this.height = 48,
   });
 
   @override
@@ -95,26 +113,25 @@ class CustomOutlineButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: textColor ?? Theme.of(context).primaryColor,
-          side: BorderSide(
-            color: borderColor ?? Theme.of(context).primaryColor,
-            width: 2,
-          ),
+          foregroundColor: textColor ?? AppTheme.primaryColor,
+          side: BorderSide(color: borderColor ?? AppTheme.primaryColor, width: 1.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(18),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 20),
+              Icon(icon, size: 18),
               const SizedBox(width: 8),
             ],
             Text(
               text,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
             ),
