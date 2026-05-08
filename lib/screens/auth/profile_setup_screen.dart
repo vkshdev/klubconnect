@@ -148,10 +148,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       await _firestoreService.markProfileComplete(uid);
 
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false,
+          (route) => false,
         );
       }
     } catch (e) {
@@ -363,12 +362,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       TextButton(
                         onPressed: () {
                           // Skip for now
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomeScreen(),
-                            ),
-                                (route) => false,
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (context) => const HomeScreen()),
+                            (route) => false,
                           );
                         },
                         child: const Text('Skip for now'),
