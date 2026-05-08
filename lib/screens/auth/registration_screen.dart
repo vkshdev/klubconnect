@@ -240,7 +240,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         );
       }
     } else {
-      Fluttertoast.showToast(msg: result['message']);
+      String msg = result['message'] ?? 'Registration failed';
+      if (msg.contains('channel-error')) {
+        msg = 'Connection error. Please check your internet or Firebase setup.';
+      }
+      Fluttertoast.showToast(msg: msg);
     }
   }
 
