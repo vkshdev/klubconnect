@@ -2,113 +2,107 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Colors
-  static const Color primaryColor = Color(0xFF2196F3);
-  static const Color secondaryColor = Color(0xFF757575);
-  static const Color backgroundColor = Color(0xFFF5F7FA);
-  static const Color cardColor = Colors.white;
-  static const Color errorColor = Color(0xFFF44336);
-  static const Color successColor = Color(0xFF4CAF50);
-
-  // Glass effect colors
-  static const Color glassBackground = Color(0x40FFFFFF);
-  static const Color glassBorder = Color(0x30FFFFFF);
+  static const Color primaryColor = Color(0xFF2563EB);
+  static const Color secondaryColor = Color(0xFF475569);
+  static const Color accentColor = Color(0xFF0F766E);
+  static const Color backgroundColor = Color(0xFFF6F8FC);
+  static const Color surfaceColor = Colors.white;
+  static const Color glassColor = Color(0xCCFFFFFF);
+  static const Color darkTextColor = Color(0xFF0F172A);
+  static const Color lightTextColor = Color(0xFF64748B);
+  static const Color borderColor = Color(0xFFE2E8F0);
+  static const Color errorColor = Color(0xFFDC2626);
+  static const Color successColor = Color(0xFF16A34A);
+  static const Color warningColor = Color(0xFFD97706);
 
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     primaryColor: primaryColor,
     scaffoldBackgroundColor: backgroundColor,
+    
     colorScheme: const ColorScheme.light(
       primary: primaryColor,
-      secondary: secondaryColor,
-      error: errorColor,
+      secondary: primaryColor,
+      surface: surfaceColor,
       background: backgroundColor,
-      surface: cardColor,
+      error: errorColor,
+      onSurface: darkTextColor,
     ),
 
-    // Text Theme
-    textTheme: GoogleFonts.poppinsTextTheme().copyWith(
-      displayLarge: GoogleFonts.poppins(
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
+    textTheme: GoogleFonts.plusJakartaSansTextTheme().copyWith(
+      displayLarge: GoogleFonts.plusJakartaSans(
+        fontSize: 28,
+        fontWeight: FontWeight.w800,
+        color: darkTextColor,
       ),
-      displayMedium: GoogleFonts.poppins(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
+      displayMedium: GoogleFonts.plusJakartaSans(
+        fontSize: 22,
+        fontWeight: FontWeight.w800,
+        color: darkTextColor,
       ),
-      bodyLarge: GoogleFonts.poppins(
+      titleLarge: GoogleFonts.plusJakartaSans(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: darkTextColor,
+      ),
+      bodyLarge: GoogleFonts.plusJakartaSans(
         fontSize: 16,
-        color: Colors.black87,
+        color: darkTextColor,
       ),
-      bodyMedium: GoogleFonts.poppins(
+      bodyMedium: GoogleFonts.plusJakartaSans(
         fontSize: 14,
-        color: Colors.black87,
+        color: lightTextColor,
       ),
     ),
 
-    // AppBar Theme
-    appBarTheme: AppBarTheme(
-      backgroundColor: Colors.transparent,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: surfaceColor,
       elevation: 0,
-      centerTitle: true,
-      iconTheme: const IconThemeData(color: Colors.black87),
-      titleTextStyle: GoogleFonts.poppins(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: Colors.black87,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        color: darkTextColor,
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
       ),
+      iconTheme: IconThemeData(color: darkTextColor),
     ),
 
-    // Card Theme
     cardTheme: CardThemeData(
+      color: surfaceColor,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: borderColor, width: 1),
+        borderRadius: BorderRadius.circular(12),
       ),
-      color: cardColor,
     ),
 
-    // Input Decoration Theme
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: surfaceColor,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: borderColor),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: borderColor),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: primaryColor, width: 2),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: primaryColor, width: 1.5),
       ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: errorColor),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
 
-    // Elevated Button Theme
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        textStyle: GoogleFonts.poppins(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: surfaceColor.withOpacity(0.92),
+      indicatorColor: primaryColor.withOpacity(0.12),
+      labelTextStyle: WidgetStateProperty.all(
+        GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700),
       ),
     ),
   );
+
+  static ThemeData get darkTheme => lightTheme; // Unified professional look
 }
