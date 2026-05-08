@@ -232,11 +232,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (result['success']) {
       // Navigate directly to Profile Setup (Skipping OTP)
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => const ProfileSetupScreen(),
           ),
+          (route) => false,
         );
       }
     } else {
