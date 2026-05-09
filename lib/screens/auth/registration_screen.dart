@@ -4,7 +4,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/glass_card.dart';
 import '../../utils/constants.dart';
+import '../../utils/theme.dart';
 import '../../utils/validators.dart';
 import 'profile_setup_screen.dart';
 
@@ -74,6 +76,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (!_isFinalPage) return 'Continue';
     return isStudent ? 'Create Student Account' : 'Create Faculty Account';
   }
+
+  String get _roleTitle => isStudent ? 'Student onboarding' : 'Faculty onboarding';
+  String get _roleSubtitle => isStudent
+      ? 'Create your college profile, join clubs, and discover events from your college.'
+      : 'Create your mentor profile, manage clubs, and guide student-led activities.';
 
   void _nextPage() {
     if (_formKey.currentState!.validate()) {
@@ -257,96 +264,198 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Text(
           isStudent ? 'Student Registration' : 'Faculty Registration',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: AppTheme.darkTextColor, fontWeight: FontWeight.w900),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: AppTheme.darkTextColor),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).primaryColor.withOpacity(0.8),
-              Theme.of(context).primaryColor.withOpacity(0.4),
-              Colors.white,
+      body: Stack(
+        children: [
+          const _RegistrationBackground(),
+          SafeArea(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildRegistrationHeader(),
+                        const SizedBox(height: 16),
+                        _buildProgressIndicator(),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: GlassCard(
+                        borderRadius: 28,
+                        padding: EdgeInsets.zero,
+                        child: PageView(
+                          controller: _pageController,
+                          physics: const NeverScrollableScrollPhysics(),
+                          onPageChanged: (index) {
+                            setState(() => _currentPage = index);
+                          },
+                          children: [
+                            _buildPersonalInfoPage(),
+                            _buildAcademicInfoPage(),
+                            if (isStudent) _buildStudentDetailsPage(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  _buildBottomActions(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegistrationHeader() {
+    return Row(
+      children: [
+        Container(
+          height: 54,
+          width: 54,
+          decoration: BoxDecoration(
+            color: (isStudent ? AppTheme.accentColor : AppTheme.primaryColor).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Icon(
+            isStudent ? Icons.school_rounded : Icons.workspace_premium_rounded,
+            color: isStudent ? AppTheme.accentColor : AppTheme.primaryColor,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _roleTitle,
+                style: const TextStyle(
+                  color: AppTheme.darkTextColor,
+                  fontSize: 23,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _roleSubtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppTheme.secondaryColor,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
-        child: SafeArea(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                // Progress Indicator
-                LinearProgressIndicator(
-                  value: (_currentPage + 1) / (isStudent ? 3 : 2),
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
+      ],
+    );
+  }
 
-                // Page View
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    onPageChanged: (index) {
-                      setState(() => _currentPage = index);
-                    },
-                    children: [
-                      _buildPersonalInfoPage(),
-                      _buildAcademicInfoPage(),
-                      if (isStudent) _buildStudentDetailsPage(),
-                    ],
-                  ),
+  Widget _buildProgressIndicator() {
+    final total = isStudent ? 3 : 2;
+    return GlassCard(
+      borderRadius: 18,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Step ${_currentPage + 1} of $total',
+                style: const TextStyle(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
                 ),
-
-                // Navigation Buttons
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    border: Border(
-                      top: BorderSide(color: Colors.white.withOpacity(0.2)),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      if (_currentPage > 0)
-                        Expanded(
-                          child: CustomOutlineButton(
-                            text: 'Back',
-                            onPressed: _previousPage,
-                            height: 50,
-                            textColor: Colors.white,
-                            borderColor: Colors.white,
-                          ),
-                        ),
-                      if (_currentPage > 0) const SizedBox(width: 16),
-                      Expanded(
-                        flex: _currentPage > 0 ? 1 : 2,
-                        child: CustomButton(
-                          text: _primaryButtonText,
-                          onPressed: _nextPage,
-                          isLoading: _isLoading,
-                          height: 50,
-                          icon: _isFinalPage ? Icons.verified_user_outlined : Icons.arrow_forward_rounded,
-                          backgroundColor: Colors.white,
-                          textColor: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
+              ),
+              const Spacer(),
+              Text(
+                _stepLabel,
+                style: const TextStyle(
+                  color: AppTheme.secondaryColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 7,
+              value: (_currentPage + 1) / total,
+              backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isStudent ? AppTheme.accentColor : AppTheme.primaryColor,
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  String get _stepLabel {
+    if (_currentPage == 0) return 'Personal';
+    if (isStudent && _currentPage == 2) return 'Address';
+    return isStudent ? 'Academic' : 'Professional';
+  }
+
+  Widget _buildBottomActions() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+      child: GlassCard(
+        borderRadius: 24,
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            if (_currentPage > 0)
+              Expanded(
+                child: CustomOutlineButton(
+                  text: 'Back',
+                  onPressed: _previousPage,
+                  height: 50,
+                  textColor: AppTheme.secondaryColor,
+                  borderColor: AppTheme.borderColor,
+                ),
+              ),
+            if (_currentPage > 0) const SizedBox(width: 12),
+            Expanded(
+              flex: _currentPage > 0 ? 1 : 2,
+              child: CustomButton(
+                text: _primaryButtonText,
+                onPressed: _nextPage,
+                isLoading: _isLoading,
+                height: 50,
+                icon: _isFinalPage ? Icons.verified_user_outlined : Icons.arrow_forward_rounded,
+                backgroundColor: AppTheme.darkTextColor,
+                textColor: Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -361,9 +470,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           Text(
             'Personal Information',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.darkTextColor,
+                ),
           ),
           const SizedBox(height: 24),
 
@@ -443,7 +552,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, color: Theme.of(context).primaryColor),
+                      const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
                       const SizedBox(width: 12),
                       Text(
                         _selectedDOB != null
@@ -451,13 +560,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             : 'Select Date of Birth',
                         style: TextStyle(
                           color: _selectedDOB != null
-                              ? Colors.black87
-                              : Colors.grey.shade600,
+                              ? AppTheme.darkTextColor
+                              : AppTheme.lightTextColor,
                         ),
                       ),
                     ],
                   ),
-                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                  const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.lightTextColor),
                 ],
               ),
             ),
@@ -488,9 +597,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           Text(
             isStudent ? 'Academic Information' : 'Professional Information',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.darkTextColor,
+                ),
           ),
           const SizedBox(height: 24),
 
@@ -509,7 +618,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 'Must match your student ID card exactly',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withOpacity(0.9),
+                  color: AppTheme.secondaryColor,
                 ),
               ),
             ),
@@ -558,7 +667,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, color: Theme.of(context).primaryColor),
+                        const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
                         const SizedBox(width: 12),
                         Text(
                           _sessionStartYear != null
@@ -566,13 +675,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               : 'Select Session Start Year',
                           style: TextStyle(
                             color: _sessionStartYear != null
-                                ? Colors.black87
-                                : Colors.grey.shade600,
+                                ? AppTheme.darkTextColor
+                                : AppTheme.lightTextColor,
                           ),
                         ),
                       ],
                     ),
-                    const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.lightTextColor),
                   ],
                 ),
               ),
@@ -583,18 +692,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppTheme.primaryColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade700),
+                    Icon(Icons.info_outline, color: AppTheme.primaryColor),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Session End Year: $_sessionEndYear (Auto-calculated)',
                         style: TextStyle(
-                          color: Colors.blue.shade700,
+                          color: AppTheme.primaryColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -638,7 +747,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, color: Theme.of(context).primaryColor),
+                        const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
                         const SizedBox(width: 12),
                         Text(
                           _collegeJoinedYear != null
@@ -646,13 +755,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               : 'Year Joined as Faculty',
                           style: TextStyle(
                             color: _collegeJoinedYear != null
-                                ? Colors.black87
-                                : Colors.grey.shade600,
+                                ? AppTheme.darkTextColor
+                                : AppTheme.lightTextColor,
                           ),
                         ),
                       ],
                     ),
-                    const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.lightTextColor),
                   ],
                 ),
               ),
@@ -681,9 +790,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           Text(
             'Additional Details',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.darkTextColor,
+                ),
           ),
           const SizedBox(height: 24),
 
@@ -702,6 +811,76 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               return null;
             },
             prefixIcon: Icons.home,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RegistrationBackground extends StatelessWidget {
+  const _RegistrationBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFEFF6FF),
+            Color(0xFFF8FAFC),
+            Color(0xFFEFFDF9),
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -85,
+            right: -75,
+            child: _SoftOrb(
+              color: AppTheme.primaryColor.withOpacity(0.15),
+              size: 220,
+            ),
+          ),
+          Positioned(
+            bottom: 120,
+            left: -115,
+            child: _SoftOrb(
+              color: AppTheme.accentColor.withOpacity(0.12),
+              size: 230,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SoftOrb extends StatelessWidget {
+  final Color color;
+  final double size;
+
+  const _SoftOrb({
+    required this.color,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: size,
+      width: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color,
+            blurRadius: 90,
+            spreadRadius: 24,
           ),
         ],
       ),
