@@ -17,9 +17,9 @@ KlubConnect is a professional college club management and social networking plat
 ## App Preview
 
 <p align="center">
-  <img src="assets/screenshots/Sign_in_screen.jpg" width="250" alt="Sign In Screen">
-  <img src="assets/screenshots/Students_Home_Screen.jpg" width="250" alt="Student Home Screen">
-  <img src="assets/screenshots/Faculty_Home_Screen.jpg" width="250" alt="Faculty Home Screen">
+  <img src="assets/screenshots/Sign_in.png" width="1080" alt="Sign In Screen">
+  <img src="assets/screenshots/Students.png" width="1080" alt="Student Home Screen">
+  <img src="assets/screenshots/Faculty.png" width="1080" alt="Faculty Home Screen">
 </p>
 
 ---
