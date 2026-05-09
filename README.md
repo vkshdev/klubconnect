@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="assets/images/logo.png" width="150" alt="KlubConnect Logo">
+  <img src="assets/images/logo.png" width="90" alt="KlubConnect Logo">
 </p>
 
-<h1 align="center">KlubConnect</h1>
+<h1 align="center"> KlubConnect
+</h1>
 
 <p align="center">
-  <strong>Connect Through Clubs - Your College, Your Community</strong>
+  <strong> "Connect Through Clubs - Your College, Your Community" </strong>
 </p>
 
----
 
 KlubConnect is a professional college club management and social networking platform built with Flutter and Firebase. It is designed to provide a seamless experience for students to engage in college life and for faculty to oversee and mentor college organizations.
 
