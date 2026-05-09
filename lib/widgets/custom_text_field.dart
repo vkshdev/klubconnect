@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../utils/theme.dart';
+
 class CustomTextField extends StatefulWidget {
   final String label;
   final String? hint;
@@ -55,8 +57,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
           widget.label,
           style: const TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.darkTextColor,
           ),
         ),
         const SizedBox(height: 8),
@@ -70,20 +72,20 @@ class _CustomTextFieldState extends State<CustomTextField> {
           enabled: widget.enabled,
           onChanged: widget.onChanged,
           inputFormatters: widget.inputFormatters,
-          style: const TextStyle(color: Colors.black87),
+          style: const TextStyle(color: AppTheme.darkTextColor),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: TextStyle(color: Colors.grey.shade600),
+            hintStyle: const TextStyle(color: AppTheme.lightTextColor),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.9),
+            fillColor: Colors.white.withOpacity(0.86),
             prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon, color: Theme.of(context).primaryColor)
+                ? Icon(widget.prefixIcon, color: AppTheme.primaryColor)
                 : null,
             suffixIcon: widget.obscureText
                 ? IconButton(
               icon: Icon(
                 _obscureText ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey,
+                color: AppTheme.lightTextColor,
               ),
               onPressed: () {
                 setState(() {
@@ -95,18 +97,15 @@ class _CustomTextFieldState extends State<CustomTextField> {
             counterText: '',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: AppTheme.borderColor.withOpacity(0.7)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: AppTheme.borderColor.withOpacity(0.7)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.4),
             ),
           ),
         ),
@@ -142,32 +141,32 @@ class CustomDropdown extends StatelessWidget {
           label,
           style: const TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.darkTextColor,
           ),
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: value,
-          style: const TextStyle(color: Colors.black87),
+          style: const TextStyle(color: AppTheme.darkTextColor),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade600),
+            hintStyle: const TextStyle(color: AppTheme.lightTextColor),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.9),
+            fillColor: Colors.white.withOpacity(0.86),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: AppTheme.borderColor.withOpacity(0.7)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: AppTheme.borderColor.withOpacity(0.7)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(
-                color: Colors.white,
-                width: 2,
+                color: AppTheme.primaryColor,
+                width: 1.4,
               ),
             ),
           ),
