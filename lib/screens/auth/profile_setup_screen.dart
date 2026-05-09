@@ -1,14 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:io';
+
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
-import '../../widgets/custom_text_field.dart';
-import '../../widgets/custom_button.dart';
+import '../../utils/theme.dart';
 import '../../utils/validators.dart';
+import '../../widgets/custom_button.dart';
+import '../../widgets/custom_text_field.dart';
+import '../../widgets/glass_card.dart';
 import '../home/home_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
@@ -34,8 +38,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
         source: source,
         maxWidth: 1024,
         maxHeight: 1024,
@@ -43,9 +47,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       );
 
       if (image != null) {
-        setState(() {
-          _imageFile = File(image.path);
-        });
+        setState(() => _imageFile = File(image.path));
       }
     } catch (e) {
       Fluttertoast.showToast(msg: 'Failed to pick image: $e');
@@ -55,39 +57,52 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Choose Profile Picture',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 4,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: AppTheme.borderColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.camera_alt, color: Color(0xFF2196F3)),
-              title: const Text('Take Photo'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library, color: Color(0xFF2196F3)),
-              title: const Text('Choose from Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-          ],
+              const SizedBox(height: 18),
+              const Text(
+                'Choose Profile Picture',
+                style: TextStyle(
+                  color: AppTheme.darkTextColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _ImageSourceTile(
+                icon: Icons.camera_alt_rounded,
+                title: 'Take Photo',
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              _ImageSourceTile(
+                icon: Icons.photo_library_rounded,
+                title: 'Choose from Gallery',
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -104,8 +119,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           .child('profile.jpg');
 
       await ref.putFile(_imageFile!);
-      final url = await ref.getDownloadURL();
-      return url;
+      return ref.getDownloadURL();
     } catch (e) {
       Fluttertoast.showToast(msg: 'Failed to upload image: $e');
       return null;
@@ -132,10 +146,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     }
 
     try {
-      // Upload image
       final imageUrl = await _uploadImage(uid);
-
-      // Update profile
       await _firestoreService.updateUserProfile(
         uid: uid,
         updates: {
@@ -143,8 +154,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           'profile_image_url': imageUrl,
         },
       );
-
-      // Mark profile as complete
       await _firestoreService.markProfileComplete(uid);
 
       if (mounted) {
@@ -156,226 +165,295 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     } catch (e) {
       Fluttertoast.showToast(msg: 'Setup failed: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _skipSetup() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).primaryColor.withOpacity(0.8),
-              Theme.of(context).primaryColor.withOpacity(0.4),
-              Colors.white,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-
-                        // Title
-                        const Text(
-                          'Complete Your Profile',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        Text(
-                          'Add your photo and tell us about yourself',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                        ),
-
-                        const SizedBox(height: 40),
-
-                        // Profile Picture
-                        GestureDetector(
-                          onTap: _showImageSourceDialog,
-                          child: Container(
-                            width: 150,
-                            height: 150,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: _imageFile != null
-                                ? ClipOval(
-                              child: Image.file(
-                                _imageFile!,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                                : const Icon(
-                              Icons.add_a_photo,
-                              size: 50,
-                              color: Color(0xFF2196F3),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        TextButton.icon(
-                          onPressed: _showImageSourceDialog,
-                          icon: const Icon(Icons.camera_alt, color: Colors.white),
-                          label: const Text(
-                            'Add Profile Picture',
+      backgroundColor: AppTheme.backgroundColor,
+      body: Stack(
+        children: [
+          const _ProfileSetupBackground(),
+          SafeArea(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(22, 26, 22, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Complete your profile',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: AppTheme.darkTextColor,
+                              fontSize: 34,
+                              height: 1.04,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Add a photo and a short intro so clubs and classmates know who you are.',
+                            style: TextStyle(
+                              color: AppTheme.secondaryColor,
+                              fontSize: 15,
+                              height: 1.45,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // About Section
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'About You',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              CustomTextField(
-                                label: 'Tell us about yourself',
-                                hint: 'Write about your interests, skills, or what you\'d like others to know...',
-                                controller: _aboutController,
-                                maxLines: 6,
-                                maxLength: 500,
-                                validator: Validators.validateAbout,
-                                onChanged: (value) {
-                                  setState(() {}); // Rebuild to update counter
-                                },
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              Text(
-                                '${_aboutController.text.length}/500 characters',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Info Card
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.info_outline,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'This information will be visible on your profile',
+                          const SizedBox(height: 28),
+                          Center(child: _buildAvatarPicker()),
+                          const SizedBox(height: 26),
+                          GlassCard(
+                            borderRadius: 28,
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'About You',
                                   style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.white.withOpacity(0.9),
+                                    color: AppTheme.darkTextColor,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 16),
+                                CustomTextField(
+                                  label: 'Profile Bio',
+                                  hint: 'Write about your interests, skills, or what you would like others to know...',
+                                  controller: _aboutController,
+                                  maxLines: 6,
+                                  maxLength: 500,
+                                  validator: Validators.validateAbout,
+                                  onChanged: (_) => setState(() {}),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '${_aboutController.text.length}/500 characters',
+                                  style: const TextStyle(
+                                    color: AppTheme.lightTextColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          GlassCard(
+                            borderRadius: 22,
+                            padding: const EdgeInsets.all(16),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.info_outline_rounded, color: AppTheme.primaryColor),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'This information will be visible on your profile.',
+                                    style: TextStyle(
+                                      color: AppTheme.secondaryColor,
+                                      fontSize: 13,
+                                      height: 1.35,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                  _buildBottomActions(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                // Complete Button
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, -5),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      CustomButton(
-                        text: 'Complete Setup',
-                        onPressed: _completeSetup,
-                        isLoading: _isLoading,
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () {
-                          // Skip for now
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => const HomeScreen()),
-                            (route) => false,
-                          );
-                        },
-                        child: const Text('Skip for now'),
-                      ),
-                    ],
-                  ),
+  Widget _buildAvatarPicker() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _showImageSourceDialog,
+          child: Container(
+            width: 148,
+            height: 148,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.86),
+              border: Border.all(color: Colors.white.withOpacity(0.9), width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withOpacity(0.12),
+                  blurRadius: 34,
+                  offset: const Offset(0, 18),
                 ),
               ],
             ),
+            child: _imageFile != null
+                ? ClipOval(
+                    child: Image.file(_imageFile!, fit: BoxFit.cover),
+                  )
+                : const Icon(
+                    Icons.add_a_photo_rounded,
+                    size: 46,
+                    color: AppTheme.primaryColor,
+                  ),
           ),
         ),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: _showImageSourceDialog,
+          icon: const Icon(Icons.camera_alt_rounded),
+          label: const Text(
+            'Add profile picture',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomActions() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+      child: GlassCard(
+        borderRadius: 24,
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            CustomButton(
+              text: 'Complete Setup',
+              onPressed: _completeSetup,
+              isLoading: _isLoading,
+              height: 52,
+              icon: Icons.check_circle_outline_rounded,
+              backgroundColor: AppTheme.darkTextColor,
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _isLoading ? null : _skipSetup,
+              child: const Text(
+                'Skip for now',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageSourceTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _ImageSourceTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        height: 42,
+        width: 42,
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Icon(icon, color: AppTheme.primaryColor),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: AppTheme.darkTextColor,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
+class _ProfileSetupBackground extends StatelessWidget {
+  const _ProfileSetupBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFEFF6FF),
+            Color(0xFFF8FAFC),
+            Color(0xFFEFFDF9),
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -85,
+            right: -75,
+            child: _SoftOrb(color: AppTheme.primaryColor.withOpacity(0.15), size: 220),
+          ),
+          Positioned(
+            bottom: 80,
+            left: -115,
+            child: _SoftOrb(color: AppTheme.accentColor.withOpacity(0.12), size: 230),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SoftOrb extends StatelessWidget {
+  final Color color;
+  final double size;
+
+  const _SoftOrb({
+    required this.color,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: size,
+      width: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 90, spreadRadius: 24),
+        ],
       ),
     );
   }
