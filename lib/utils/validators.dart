@@ -132,7 +132,7 @@ class Validators {
 
     return null;
   }
-  
+
   // Sanitize input
   static String sanitize(String value) {
     return value.trim().replaceAll(RegExp(r'[<>]'), '');
