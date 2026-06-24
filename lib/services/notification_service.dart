@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -10,20 +12,25 @@ import '../utils/constants.dart';
 class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
   Future<void> initialize({String? userId}) async {
     // Skip notification initialization on Windows as FCM support is limited/different
-    if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.android &&
+            defaultTargetPlatform != TargetPlatform.iOS)) {
       return;
     }
-    
+
     try {
-      final settings = await _fcm.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      ).timeout(const Duration(seconds: 5));
+      final settings = await _fcm
+          .requestPermission(
+            alert: true,
+            badge: true,
+            sound: true,
+          )
+          .timeout(const Duration(seconds: 5));
 
       const androidChannel = AndroidNotificationChannel(
         'high_importance_channel',
@@ -32,7 +39,8 @@ class NotificationService {
       );
 
       await _localNotifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(androidChannel);
 
       const initializationSettings = InitializationSettings(
@@ -40,7 +48,8 @@ class NotificationService {
       );
       await _localNotifications.initialize(initializationSettings);
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized && userId != null) {
+      if (settings.authorizationStatus == AuthorizationStatus.authorized &&
+          userId != null) {
         await _saveToken(userId);
         FirebaseMessaging.instance.onTokenRefresh.listen((token) {
           _saveToken(userId, token: token);
@@ -72,14 +81,27 @@ class NotificationService {
   Future<void> _saveToken(String userId, {String? token}) async {
     final fcmToken = token ?? await _fcm.getToken();
     if (fcmToken == null) return;
-    await _firestore.collection(AppConstants.usersCollection).doc(userId).update({
+    final userRef =
+        _firestore.collection(AppConstants.usersCollection).doc(userId);
+    final deviceId =
+        base64Url.encode(utf8.encode(fcmToken)).replaceAll('=', '');
+    final platform = defaultTargetPlatform.name;
+
+    await userRef.update({
       'fcm_token': fcmToken,
       'last_token_updated_at': FieldValue.serverTimestamp(),
     });
+    await userRef.collection('devices').doc(deviceId).set({
+      'token': fcmToken,
+      'platform': platform,
+      'updated_at': FieldValue.serverTimestamp(),
+      'last_seen_at': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> sendNotification({
     required String userId,
+    String? institutionId,
     required String type,
     required String title,
     required String message,
@@ -92,6 +114,7 @@ class NotificationService {
     final id = const Uuid().v4();
     final notification = NotificationModel(
       notificationId: id,
+      institutionId: institutionId ?? '',
       userId: userId,
       type: type,
       title: title,
@@ -104,7 +127,10 @@ class NotificationService {
       createdAt: DateTime.now(),
     );
 
-    await _firestore.collection('notifications').doc(id).set(notification.toFirestore());
+    await _firestore
+        .collection('notifications')
+        .doc(id)
+        .set(notification.toFirestore());
   }
 
   Stream<List<NotificationModel>> streamNotifications(String userId) {
@@ -113,11 +139,15 @@ class NotificationService {
         .where('user_id', isEqualTo: userId)
         .orderBy('created_at', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map(NotificationModel.fromFirestore).toList());
+        .map((snapshot) =>
+            snapshot.docs.map(NotificationModel.fromFirestore).toList());
   }
 
   Future<void> markAsRead(String notificationId) async {
-    await _firestore.collection('notifications').doc(notificationId).update({'is_read': true});
+    await _firestore
+        .collection('notifications')
+        .doc(notificationId)
+        .update({'is_read': true});
   }
 
   Future<void> markAllAsRead(String userId) async {

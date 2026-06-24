@@ -25,7 +25,8 @@ class AuthService extends ChangeNotifier {
   Future<Map<String, dynamic>> sendMagicLink(String email) async {
     try {
       var acs = ActionCodeSettings(
-        url: 'https://klubconnect.page.link/login', // Configure in Firebase Console
+        url:
+            'https://klubconnect.page.link/login', // Configure in Firebase Console
         handleCodeInApp: true,
         androidPackageName: 'com.example.klubconnect',
         androidInstallApp: true,
@@ -50,14 +51,15 @@ class AuthService extends ChangeNotifier {
   }
 
   // Complete Sign In with Email Link
-  Future<Map<String, dynamic>> signInWithEmailLink(String email, String emailLink) async {
+  Future<Map<String, dynamic>> signInWithEmailLink(
+      String email, String emailLink) async {
     try {
       if (_auth.isSignInWithEmailLink(emailLink)) {
         final UserCredential userCredential = await _auth.signInWithEmailLink(
           email: email,
           emailLink: emailLink,
         );
-        
+
         // Update last login
         await _firestoreService.updateUserLastLogin(userCredential.user!.uid);
 
@@ -86,7 +88,8 @@ class AuthService extends ChangeNotifier {
     required Map<String, dynamic> userData,
   }) async {
     try {
-      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      final UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -104,9 +107,15 @@ class AuthService extends ChangeNotifier {
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Registration failed';
       switch (e.code) {
-        case 'weak-password': errorMessage = 'The password provided is too weak'; break;
-        case 'email-already-in-use': errorMessage = 'An account already exists for this email'; break;
-        case 'invalid-email': errorMessage = 'The email address is not valid'; break;
+        case 'weak-password':
+          errorMessage = 'The password provided is too weak';
+          break;
+        case 'email-already-in-use':
+          errorMessage = 'An account already exists for this email';
+          break;
+        case 'invalid-email':
+          errorMessage = 'The email address is not valid';
+          break;
       }
       return {'success': false, 'message': errorMessage};
     } catch (e) {
@@ -120,7 +129,8 @@ class AuthService extends ChangeNotifier {
     required String password,
   }) async {
     try {
-      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      final UserCredential userCredential =
+          await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -135,9 +145,15 @@ class AuthService extends ChangeNotifier {
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Login failed';
       switch (e.code) {
-        case 'user-not-found': errorMessage = 'No account found with this email'; break;
-        case 'wrong-password': errorMessage = 'Incorrect password'; break;
-        case 'invalid-credential': errorMessage = 'Invalid email or password'; break;
+        case 'user-not-found':
+          errorMessage = 'No account found with this email';
+          break;
+        case 'wrong-password':
+          errorMessage = 'Incorrect password';
+          break;
+        case 'invalid-credential':
+          errorMessage = 'Invalid email or password';
+          break;
       }
       return {'success': false, 'message': errorMessage};
     } catch (e) {
@@ -176,7 +192,10 @@ class AuthService extends ChangeNotifier {
   Future<Map<String, dynamic>> verifyPhoneOTP(String otp) async {
     try {
       if (_verificationId == null) {
-        return {'success': false, 'message': 'Verification ID is null. Please resend OTP'};
+        return {
+          'success': false,
+          'message': 'Verification ID is null. Please resend OTP'
+        };
       }
       final PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: _verificationId!,
