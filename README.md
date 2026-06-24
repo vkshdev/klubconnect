@@ -29,7 +29,7 @@ KlubConnect is a professional college club management and social networking plat
 ### **Unified Authentication & Onboarding**
 - **Multi-Role Support**: Distinct registration and dashboards for **Students** and **Faculty**.
 - **Secure Auth**: Robust Email/Password authentication via Firebase Auth.
-- **Streamlined Onboarding**: Direct profile setup post-registration with a simplified flow for Faculty (no enrollment required).
+- **Streamlined Onboarding**: Direct profile setup post-registration with a simplified flow for Faculty.
 - **Profile Customization**: Personalize profiles with photos, bios, and academic details in a clean, professional settings hub.
 
 ### **Club Management Ecosystem**
@@ -69,6 +69,12 @@ KlubConnect is a professional college club management and social networking plat
   - *Used for decoupled, reactive state updates across the app (Auth, UI states).*
 - **Architecture**: Service-Oriented (separated Services, Models, and UI layers).
 - **Design System**: Professional Corporate Aesthetic with Inter typography.
+
+---
+
+## Backend Architecture
+
+For a detailed explanation of the backend architecture, including the services, data models, and workflows, please refer to the [Architecture Document](ARCHITECTURE.md).
 
 ---
 
