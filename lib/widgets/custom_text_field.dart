@@ -77,35 +77,38 @@ class _CustomTextFieldState extends State<CustomTextField> {
             hintText: widget.hint,
             hintStyle: const TextStyle(color: AppTheme.lightTextColor),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.86),
+            fillColor: Colors.white.withValues(alpha: 0.86),
             prefixIcon: widget.prefixIcon != null
                 ? Icon(widget.prefixIcon, color: AppTheme.primaryColor)
                 : null,
             suffixIcon: widget.obscureText
                 ? IconButton(
-              icon: Icon(
-                _obscureText ? Icons.visibility_off : Icons.visibility,
-                color: AppTheme.lightTextColor,
-              ),
-              onPressed: () {
-                setState(() {
-                  _obscureText = !_obscureText;
-                });
-              },
-            )
+                    icon: Icon(
+                      _obscureText ? Icons.visibility_off : Icons.visibility,
+                      color: AppTheme.lightTextColor,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureText = !_obscureText;
+                      });
+                    },
+                  )
                 : widget.suffixIcon,
             counterText: '',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppTheme.borderColor.withOpacity(0.7)),
+              borderSide: BorderSide(
+                  color: AppTheme.borderColor.withValues(alpha: 0.7)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppTheme.borderColor.withOpacity(0.7)),
+              borderSide: BorderSide(
+                  color: AppTheme.borderColor.withValues(alpha: 0.7)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.4),
+              borderSide:
+                  const BorderSide(color: AppTheme.primaryColor, width: 1.4),
             ),
           ),
         ),
@@ -147,20 +150,22 @@ class CustomDropdown extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           style: const TextStyle(color: AppTheme.darkTextColor),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: AppTheme.lightTextColor),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.86),
+            fillColor: Colors.white.withValues(alpha: 0.86),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppTheme.borderColor.withOpacity(0.7)),
+              borderSide: BorderSide(
+                  color: AppTheme.borderColor.withValues(alpha: 0.7)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppTheme.borderColor.withOpacity(0.7)),
+              borderSide: BorderSide(
+                  color: AppTheme.borderColor.withValues(alpha: 0.7)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
