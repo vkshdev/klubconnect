@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -91,7 +92,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+        body: Center(
+            child: CircularProgressIndicator(color: AppTheme.primaryColor)),
       );
     }
 
@@ -104,7 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
               const Text('Profile not found. Please sign in again.'),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => Provider.of<AuthService>(context, listen: false).signOut(),
+                onPressed: () =>
+                    Provider.of<AuthService>(context, listen: false).signOut(),
                 child: const Text('Back to Login'),
               ),
             ],
@@ -139,14 +142,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildRoleActionGrid(),
                           const SizedBox(height: 20),
                           _buildSectionHeader(
-                            title: _isFaculty ? 'Approval desk' : 'College highlights',
+                            title: _isFaculty
+                                ? 'Approval desk'
+                                : 'College highlights',
                             actionText: _isFaculty ? 'Calendar' : 'View all',
                             onTap: () => _openCalendar(),
                           ),
-                          _isFaculty ? _buildFacultyApprovalDesk() : _buildStudentHighlights(),
+                          _isFaculty
+                              ? _buildFacultyApprovalDesk()
+                              : _buildStudentHighlights(),
                           const SizedBox(height: 20),
                           _buildSectionHeader(
-                            title: _isFaculty ? 'Clubs you mentor' : 'Your clubs',
+                            title:
+                                _isFaculty ? 'Clubs you mentor' : 'Your clubs',
                             actionText: 'Clubs',
                             onTap: () => _openClubs(),
                           ),
@@ -210,12 +218,15 @@ class _HomeScreenState extends State<HomeScreen> {
         GestureDetector(
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => EditProfileScreen(user: user)),
+            MaterialPageRoute(
+                builder: (context) => EditProfileScreen(user: user)),
           ),
           child: CircleAvatar(
             radius: 23,
             backgroundColor: Colors.white,
-            backgroundImage: user.profileImageUrl != null ? NetworkImage(user.profileImageUrl!) : null,
+            backgroundImage: user.profileImageUrl != null
+                ? CachedNetworkImageProvider(user.profileImageUrl!)
+                : null,
             child: user.profileImageUrl == null
                 ? Text(
                     _initials(user),
@@ -243,7 +254,8 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icons.notifications_none_rounded,
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const NotificationScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const NotificationScreen()),
               ),
             ),
             if (count > 0)
@@ -251,7 +263,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 right: -2,
                 top: -3,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppTheme.errorColor,
                     borderRadius: BorderRadius.circular(999),
@@ -275,9 +288,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeroPanel() {
     final user = _currentUser!;
-    final roleLabel = _isFaculty ? 'Faculty mentor workspace' : 'Connect with your Club';
+    final roleLabel =
+        _isFaculty ? 'Faculty mentor workspace' : 'Connect with your Club';
     final primaryAction = _isFaculty ? 'Create club' : 'Explore clubs';
-    final primaryIcon = _isFaculty ? Icons.add_business_rounded : Icons.explore_rounded;
+    final primaryIcon =
+        _isFaculty ? Icons.add_business_rounded : Icons.explore_rounded;
 
     return _GlassPanel(
       padding: const EdgeInsets.all(20),
@@ -298,9 +313,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -331,7 +347,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: _MetricPill(
                   label: _isFaculty ? 'Created' : 'Joined',
-                  value: _isFaculty ? '${user.clubsCreated.length}' : '${user.clubsJoined.length}',
+                  value: _isFaculty
+                      ? '${user.clubsCreated.length}'
+                      : '${user.clubsJoined.length}',
                   icon: Icons.groups_2_rounded,
                   color: AppTheme.primaryColor,
                 ),
@@ -343,7 +361,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   value: _isFaculty
                       ? '${user.clubsCreated.length}'
                       : '${user.isPresidentOf.length + user.isOrganizerOf.length}',
-                  icon: _isFaculty ? Icons.school_rounded : Icons.workspace_premium_rounded,
+                  icon: _isFaculty
+                      ? Icons.school_rounded
+                      : Icons.workspace_premium_rounded,
                   color: AppTheme.accentColor,
                 ),
               ),
@@ -360,7 +380,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: AppTheme.darkTextColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18)),
               ),
             ),
           ),
@@ -373,25 +394,35 @@ class _HomeScreenState extends State<HomeScreen> {
     final actions = <_DashboardAction>[];
     if (_isFaculty) {
       actions.addAll([
-        _DashboardAction('Create Club', Icons.add_circle_outline_rounded, _openCreateClub, AppTheme.primaryColor),
-        _DashboardAction('Review Events', Icons.fact_check_outlined, _openCalendar, AppTheme.warningColor),
-        _DashboardAction('Announcements', Icons.campaign_outlined, _openClubs, AppTheme.accentColor),
-        _DashboardAction('Search College', Icons.manage_search_rounded, _openSearch, const Color(0xFF334155)),
+        _DashboardAction('Create Club', Icons.add_circle_outline_rounded,
+            _openCreateClub, AppTheme.primaryColor),
+        _DashboardAction('Review Events', Icons.fact_check_outlined,
+            _openCalendar, AppTheme.warningColor),
+        _DashboardAction('Announcements', Icons.campaign_outlined, _openClubs,
+            AppTheme.accentColor),
+        _DashboardAction('Search College', Icons.manage_search_rounded,
+            _openSearch, const Color(0xFF334155)),
       ]);
     } else {
       actions.addAll([
-        _DashboardAction('Discover Clubs', Icons.travel_explore_rounded, _openClubs, AppTheme.primaryColor),
-        _DashboardAction('Event Calendar', Icons.calendar_month_rounded, _openCalendar, AppTheme.accentColor),
+        _DashboardAction('Discover Clubs', Icons.travel_explore_rounded,
+            _openClubs, AppTheme.primaryColor),
+        _DashboardAction('Event Calendar', Icons.calendar_month_rounded,
+            _openCalendar, AppTheme.accentColor),
       ]);
       if (_managedClubIds.isNotEmpty) {
         actions.addAll([
-          _DashboardAction('Create Event', Icons.add_task_rounded, _openCreateEventForManagedClub, AppTheme.warningColor),
-          _DashboardAction('Manage Club', Icons.admin_panel_settings_outlined, _openClubs, const Color(0xFF334155)),
+          _DashboardAction('Create Event', Icons.add_task_rounded,
+              _openCreateEventForManagedClub, AppTheme.warningColor),
+          _DashboardAction('Manage Club', Icons.admin_panel_settings_outlined,
+              _openClubs, const Color(0xFF334155)),
         ]);
       } else {
         actions.addAll([
-          _DashboardAction('My Profile', Icons.person_outline_rounded, _openProfile, const Color(0xFF334155)),
-          _DashboardAction('Search College', Icons.manage_search_rounded, _openSearch, AppTheme.warningColor),
+          _DashboardAction('My Profile', Icons.person_outline_rounded,
+              _openProfile, const Color(0xFF334155)),
+          _DashboardAction('Search College', Icons.manage_search_rounded,
+              _openSearch, AppTheme.warningColor),
         ]);
       }
     }
@@ -423,7 +454,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return const _EmptyPanel(
             icon: Icons.verified_outlined,
             title: 'No pending event approvals',
-            message: 'New event proposals from presidents and organizers will appear here.',
+            message:
+                'New event proposals from presidents and organizers will appear here.',
           );
         }
 
@@ -443,7 +475,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStudentHighlights() {
     return StreamBuilder<List<EventModel>>(
-      stream: _eventService.getApprovedEvents(_currentUser!.collegeName),
+      stream: _eventService.getApprovedEvents(
+        _currentUser!.collegeName,
+        institutionId: _currentUser!.institutionId,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _LoadingPanel(message: 'Loading college events...');
@@ -454,7 +489,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return const _EmptyPanel(
             icon: Icons.event_available_outlined,
             title: 'No approved events yet',
-            message: 'Once clubs publish approved events, they will show up here.',
+            message:
+                'Once clubs publish approved events, they will show up here.',
           );
         }
 
@@ -473,7 +509,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMyClubs() {
-    final clubIds = _isFaculty ? _currentUser!.clubsCreated : _currentUser!.clubsJoined;
+    final clubIds =
+        _isFaculty ? _currentUser!.clubsCreated : _currentUser!.clubsJoined;
 
     return StreamBuilder<List<ClubModel>>(
       stream: _clubService.getClubsForUser(clubIds),
@@ -504,7 +541,8 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ClubDetailsScreen(clubId: clubs[index].clubId),
+                  builder: (context) =>
+                      ClubDetailsScreen(clubId: clubs[index].clubId),
                 ),
               ),
             ),
@@ -606,26 +644,31 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openClubs() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const ClubListScreen()));
+    Navigator.push(context,
+        MaterialPageRoute(builder: (context) => const ClubListScreen()));
   }
 
   void _openCalendar() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarScreen()));
+    Navigator.push(context,
+        MaterialPageRoute(builder: (context) => const CalendarScreen()));
   }
 
   void _openSearch() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => const SearchScreen()));
   }
 
   void _openProfile() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => EditProfileScreen(user: _currentUser!)),
+      MaterialPageRoute(
+          builder: (context) => EditProfileScreen(user: _currentUser!)),
     );
   }
 
   void _openCreateClub() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateClubScreen()));
+    Navigator.push(context,
+        MaterialPageRoute(builder: (context) => const CreateClubScreen()));
   }
 
   Future<void> _openCreateEventForManagedClub() async {
@@ -641,7 +684,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openEvent(String eventId) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => EventDetailsScreen(eventId: eventId)),
+      MaterialPageRoute(
+          builder: (context) => EventDetailsScreen(eventId: eventId)),
     );
   }
 }
@@ -668,12 +712,15 @@ class _DashboardBackground extends StatelessWidget {
           Positioned(
             top: -90,
             right: -70,
-            child: _SoftOrb(color: AppTheme.primaryColor.withOpacity(0.16), size: 210),
+            child: _SoftOrb(
+                color: AppTheme.primaryColor.withValues(alpha: 0.16),
+                size: 210),
           ),
           Positioned(
             top: 250,
             left: -90,
-            child: _SoftOrb(color: AppTheme.accentColor.withOpacity(0.12), size: 190),
+            child: _SoftOrb(
+                color: AppTheme.accentColor.withValues(alpha: 0.12), size: 190),
           ),
         ],
       ),
@@ -728,12 +775,12 @@ class _GlassPanel extends StatelessWidget {
           margin: margin,
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.74),
+            color: Colors.white.withValues(alpha: 0.74),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.withOpacity(0.75)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.75)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0F172A).withOpacity(0.08),
+                color: const Color(0xFF0F172A).withValues(alpha: 0.08),
                 blurRadius: 30,
                 offset: const Offset(0, 16),
               ),
@@ -762,7 +809,7 @@ class _IconGlassButton extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Material(
-          color: Colors.white.withOpacity(0.76),
+          color: Colors.white.withValues(alpha: 0.76),
           child: InkWell(
             onTap: onTap,
             child: SizedBox(
@@ -795,7 +842,7 @@ class _MetricPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -856,7 +903,7 @@ class _ActionTile extends StatelessWidget {
               height: 42,
               width: 42,
               decoration: BoxDecoration(
-                color: action.color.withOpacity(0.1),
+                color: action.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(action.icon, color: action.color),
@@ -909,7 +956,7 @@ class _EventCard extends StatelessWidget {
               height: 58,
               width: 58,
               decoration: BoxDecoration(
-                color: badgeColor.withOpacity(0.1),
+                color: badgeColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
@@ -962,9 +1009,10 @@ class _EventCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                     decoration: BoxDecoration(
-                      color: badgeColor.withOpacity(0.1),
+                      color: badgeColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -981,7 +1029,8 @@ class _EventCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppTheme.lightTextColor),
+            const Icon(Icons.chevron_right_rounded,
+                color: AppTheme.lightTextColor),
           ],
         ),
       ),
@@ -989,7 +1038,20 @@ class _EventCard extends StatelessWidget {
   }
 
   static String _monthLabel(int month) {
-    const labels = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const labels = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC'
+    ];
     return labels[month - 1];
   }
 }
@@ -1021,12 +1083,17 @@ class _ClubCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: color.withOpacity(0.1),
-                    backgroundImage: club.logoUrl.isNotEmpty ? NetworkImage(club.logoUrl) : null,
+                    backgroundColor: color.withValues(alpha: 0.1),
+                    backgroundImage: club.logoUrl.isNotEmpty
+                        ? CachedNetworkImageProvider(club.logoUrl)
+                        : null,
                     child: club.logoUrl.isEmpty
                         ? Text(
-                            club.name.isEmpty ? 'K' : club.name[0].toUpperCase(),
-                            style: TextStyle(color: color, fontWeight: FontWeight.w900),
+                            club.name.isEmpty
+                                ? 'K'
+                                : club.name[0].toUpperCase(),
+                            style: TextStyle(
+                                color: color, fontWeight: FontWeight.w900),
                           )
                         : null,
                   ),
@@ -1095,7 +1162,8 @@ class _LoadingPanel extends StatelessWidget {
           const SizedBox(
             height: 18,
             width: 18,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor),
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: AppTheme.primaryColor),
           ),
           const SizedBox(width: 12),
           Text(
@@ -1131,7 +1199,7 @@ class _EmptyPanel extends StatelessWidget {
             height: 48,
             width: 48,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.09),
+              color: AppTheme.primaryColor.withValues(alpha: 0.09),
               borderRadius: BorderRadius.circular(17),
             ),
             child: Icon(icon, color: AppTheme.primaryColor),

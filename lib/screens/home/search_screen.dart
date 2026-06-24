@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -85,7 +86,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+                    IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () => Navigator.pop(context)),
                     Expanded(
                       child: GlassCard(
                         padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -136,7 +139,8 @@ class _SearchScreenState extends State<SearchScreen> {
               items: _categories.map((category) {
                 return DropdownMenuItem(value: category, child: Text(category));
               }).toList(),
-              onChanged: (value) => setState(() => _selectedCategory = value ?? 'All'),
+              onChanged: (value) =>
+                  setState(() => _selectedCategory = value ?? 'All'),
             ),
         ],
       ),
@@ -158,10 +162,12 @@ class _SearchScreenState extends State<SearchScreen> {
       return StreamBuilder<List<ClubModel>>(
         stream: _clubService.searchClubs(
           collegeName: _currentUser!.collegeName,
+          institutionId: _currentUser!.institutionId,
           query: _query,
           category: _selectedCategory,
         ),
-        builder: (context, snapshot) => _buildClubResults(snapshot.data ?? [], snapshot.connectionState),
+        builder: (context, snapshot) =>
+            _buildClubResults(snapshot.data ?? [], snapshot.connectionState),
       );
     }
 
@@ -169,24 +175,30 @@ class _SearchScreenState extends State<SearchScreen> {
       return StreamBuilder<List<EventModel>>(
         stream: _eventService.searchEvents(
           collegeName: _currentUser!.collegeName,
+          institutionId: _currentUser!.institutionId,
           query: _query,
           status: EventStatus.approved,
         ),
-        builder: (context, snapshot) => _buildEventResults(snapshot.data ?? [], snapshot.connectionState),
+        builder: (context, snapshot) =>
+            _buildEventResults(snapshot.data ?? [], snapshot.connectionState),
       );
     }
 
     return StreamBuilder<List<UserModel>>(
       stream: _firestoreService.searchUsersByCollege(
         collegeName: _currentUser!.collegeName,
+        institutionId: _currentUser!.institutionId,
         query: _query,
       ),
-      builder: (context, snapshot) => _buildUserResults(snapshot.data ?? [], snapshot.connectionState),
+      builder: (context, snapshot) =>
+          _buildUserResults(snapshot.data ?? [], snapshot.connectionState),
     );
   }
 
   Widget _buildClubResults(List<ClubModel> clubs, ConnectionState state) {
-    if (state == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+    if (state == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    }
     if (clubs.isEmpty) return const Center(child: Text('No matching clubs.'));
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -199,15 +211,22 @@ class _SearchScreenState extends State<SearchScreen> {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
-                backgroundImage: club.logoUrl.isNotEmpty ? NetworkImage(club.logoUrl) : null,
-                child: club.logoUrl.isEmpty && club.name.isNotEmpty ? Text(club.name[0]) : null,
+                backgroundImage: club.logoUrl.isNotEmpty
+                    ? CachedNetworkImageProvider(club.logoUrl)
+                    : null,
+                child: club.logoUrl.isEmpty && club.name.isNotEmpty
+                    ? Text(club.name[0])
+                    : null,
               ),
-              title: Text(club.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+              title: Text(club.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
               subtitle: Text(club.category),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ClubDetailsScreen(clubId: club.clubId)),
+                MaterialPageRoute(
+                    builder: (context) =>
+                        ClubDetailsScreen(clubId: club.clubId)),
               ),
             ),
           ),
@@ -217,7 +236,9 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildEventResults(List<EventModel> events, ConnectionState state) {
-    if (state == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+    if (state == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    }
     if (events.isEmpty) return const Center(child: Text('No matching events.'));
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -230,12 +251,15 @@ class _SearchScreenState extends State<SearchScreen> {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.event_outlined),
-              title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              title: Text(event.title,
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
               subtitle: Text(event.clubName),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => EventDetailsScreen(eventId: event.eventId)),
+                MaterialPageRoute(
+                    builder: (context) =>
+                        EventDetailsScreen(eventId: event.eventId)),
               ),
             ),
           ),
@@ -245,7 +269,9 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildUserResults(List<UserModel> users, ConnectionState state) {
-    if (state == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+    if (state == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    }
     if (users.isEmpty) return const Center(child: Text('No matching users.'));
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -258,10 +284,15 @@ class _SearchScreenState extends State<SearchScreen> {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
-                backgroundImage: user.profileImageUrl != null ? NetworkImage(user.profileImageUrl!) : null,
-                child: user.profileImageUrl == null && user.firstName.isNotEmpty ? Text(user.firstName[0]) : null,
+                backgroundImage: user.profileImageUrl != null
+                    ? CachedNetworkImageProvider(user.profileImageUrl!)
+                    : null,
+                child: user.profileImageUrl == null && user.firstName.isNotEmpty
+                    ? Text(user.firstName[0])
+                    : null,
               ),
-              title: Text(user.fullName, style: const TextStyle(fontWeight: FontWeight.w800)),
+              title: Text(user.fullName,
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
               subtitle: Text(user.userType),
             ),
           ),
