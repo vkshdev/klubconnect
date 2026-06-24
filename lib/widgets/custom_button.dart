@@ -37,7 +37,8 @@ class CustomButton extends StatelessWidget {
               ? backgroundColor ?? AppTheme.primaryColor
               : Colors.transparent,
           foregroundColor: textColor ?? Colors.white,
-          disabledBackgroundColor: (backgroundColor ?? AppTheme.primaryColor).withOpacity(0.55),
+          disabledBackgroundColor: (backgroundColor ?? AppTheme.primaryColor)
+              .withValues(alpha: 0.55),
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
@@ -114,7 +115,8 @@ class CustomOutlineButton extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: textColor ?? AppTheme.primaryColor,
-          side: BorderSide(color: borderColor ?? AppTheme.primaryColor, width: 1.5),
+          side: BorderSide(
+              color: borderColor ?? AppTheme.primaryColor, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
