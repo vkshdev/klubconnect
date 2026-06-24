@@ -21,8 +21,26 @@ service firebase.storage {
       return firestore.get(/databases/(default)/documents/events/$(eventId));
     }
 
-    function sameCollegeAsClub(clubId) {
-      return isSignedIn() && currentUser().college_name == clubDoc(clubId).data.college_name;
+    function sameTenant(data) {
+      return isSignedIn() && (
+        data.institution_id == currentUser().institution_id ||
+        (
+          (!('institution_id' in data) || data.institution_id == null) &&
+          data.college_name == currentUser().college_name
+        )
+      );
+    }
+
+    function sameTenantAsUser(userId) {
+      return isSignedIn() && sameTenant(userDoc(userId).data);
+    }
+
+    function sameTenantAsClub(clubId) {
+      return isSignedIn() && sameTenant(clubDoc(clubId).data);
+    }
+
+    function sameTenantAsEvent(eventId) {
+      return isSignedIn() && sameTenant(eventDoc(eventId).data);
     }
 
     function isClubManager(clubId) {
@@ -33,30 +51,38 @@ service firebase.storage {
       );
     }
 
-    function validImage() {
-      return request.resource == null ||
-        (request.resource.size < 5 * 1024 * 1024 &&
-         request.resource.contentType.matches('image/.*'));
+    function validImageForInstitution(institutionId) {
+      return request.resource != null &&
+        request.resource.size < 3 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*') &&
+        request.resource.metadata.institution_id == institutionId &&
+        request.resource.metadata.owner_id == request.auth.uid;
     }
 
     match /profiles/{userId}/{allPaths=**} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == userId && validImage();
+      allow read: if sameTenantAsUser(userId);
+      allow write: if isSignedIn() &&
+        request.auth.uid == userId &&
+        validImageForInstitution(currentUser().institution_id);
     }
 
     match /clubs/{clubId}/{allPaths=**} {
-      allow read: if sameCollegeAsClub(clubId);
-      allow write: if isClubManager(clubId) && validImage();
+      allow read: if sameTenantAsClub(clubId);
+      allow write: if isClubManager(clubId) &&
+        sameTenantAsClub(clubId) &&
+        validImageForInstitution(clubDoc(clubId).data.institution_id);
     }
 
     match /events/{eventId}/{allPaths=**} {
-      allow read: if isSignedIn() && currentUser().college_name == eventDoc(eventId).data.college_name;
-      allow write: if isClubManager(eventDoc(eventId).data.club_id) && validImage();
+      allow read: if sameTenantAsEvent(eventId);
+      allow write: if isClubManager(eventDoc(eventId).data.club_id) &&
+        sameTenantAsEvent(eventId) &&
+        validImageForInstitution(eventDoc(eventId).data.institution_id);
     }
 
     match /announcements/{announcementId}/{allPaths=**} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && validImage();
+      allow write: if false;
     }
   }
 }
