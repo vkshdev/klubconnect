@@ -1,7 +1,8 @@
 class AppConstants {
   // App Info
   static const String appName = 'KlubConnect';
-  static const String appTagline = 'Connect Through Clubs - Your College, Your Community';
+  static const String appTagline =
+      'Connect Through Clubs - Your College, Your Community';
 
   // User Types
   static const String userTypeStudent = 'student';
@@ -37,7 +38,17 @@ class AppConstants {
 
   // Branches by Course
   static const Map<String, List<String>> branches = {
-    'B.Tech': ['CSE', 'IT', 'ECE', 'Mechanical', 'Civil', 'EEE', 'AIML', 'Cyber Security', 'AIDS'],
+    'B.Tech': [
+      'CSE',
+      'IT',
+      'ECE',
+      'Mechanical',
+      'Civil',
+      'EEE',
+      'AIML',
+      'Cyber Security',
+      'AIDS'
+    ],
     'M.Tech': ['CSE', 'IT', 'ECE', 'Mechanical', 'Civil', 'Other'],
     'BCA': ['Computer Applications'],
     'MCA': ['Computer Applications'],

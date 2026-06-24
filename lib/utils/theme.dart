@@ -20,16 +20,13 @@ class AppTheme {
     brightness: Brightness.light,
     primaryColor: primaryColor,
     scaffoldBackgroundColor: backgroundColor,
-    
     colorScheme: const ColorScheme.light(
       primary: primaryColor,
       secondary: primaryColor,
       surface: surfaceColor,
-      background: backgroundColor,
       error: errorColor,
       onSurface: darkTextColor,
     ),
-
     textTheme: GoogleFonts.plusJakartaSansTextTheme().copyWith(
       displayLarge: GoogleFonts.plusJakartaSans(
         fontSize: 28,
@@ -55,7 +52,6 @@ class AppTheme {
         color: lightTextColor,
       ),
     ),
-
     appBarTheme: const AppBarTheme(
       backgroundColor: surfaceColor,
       elevation: 0,
@@ -67,7 +63,6 @@ class AppTheme {
       ),
       iconTheme: IconThemeData(color: darkTextColor),
     ),
-
     cardTheme: CardThemeData(
       color: surfaceColor,
       elevation: 0,
@@ -76,7 +71,6 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
       ),
     ),
-
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: surfaceColor,
@@ -94,10 +88,9 @@ class AppTheme {
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
-
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: surfaceColor.withOpacity(0.92),
-      indicatorColor: primaryColor.withOpacity(0.12),
+      backgroundColor: surfaceColor.withValues(alpha: 0.92),
+      indicatorColor: primaryColor.withValues(alpha: 0.12),
       labelTextStyle: WidgetStateProperty.all(
         GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700),
       ),
