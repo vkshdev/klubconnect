@@ -17,12 +17,40 @@ service cloud.firestore {
       return isSignedIn() && currentUser().college_name == collegeName;
     }
 
+    function sameInstitution(institutionId) {
+      return isSignedIn()
+        && institutionId is string
+        && currentUser().keys().hasAny(['institution_id'])
+        && currentUser().institution_id == institutionId;
+    }
+
+    function sameTenant(data) {
+      return isSignedIn() && (
+        (
+          data.keys().hasAny(['institution_id']) &&
+          sameInstitution(data.institution_id)
+        ) ||
+        (
+          data.keys().hasAny(['college_name']) &&
+          sameCollege(data.college_name)
+        )
+      );
+    }
+
     function clubDoc(clubId) {
       return get(/databases/$(database)/documents/clubs/$(clubId));
     }
 
+    function clubDocAfter(clubId) {
+      return getAfter(/databases/$(database)/documents/clubs/$(clubId));
+    }
+
     function sameCollegeAsClub(clubId) {
-      return sameCollege(clubDoc(clubId).data.college_name);
+      return sameTenant(clubDoc(clubId).data);
+    }
+
+    function sameCollegeAsClubAfter(clubId) {
+      return sameTenant(clubDocAfter(clubId).data);
     }
 
     function isClubMaster(clubId) {
@@ -41,6 +69,19 @@ service cloud.firestore {
       return isClubMaster(clubId) || isClubPresident(clubId);
     }
 
+    function isClubManagerAfter(clubId) {
+      return isSignedIn() && (
+        clubDocAfter(clubId).data.club_master_id == request.auth.uid ||
+        clubDocAfter(clubId).data.president_id == request.auth.uid
+      );
+    }
+
+    function targetIsClubManager(targetUserId, clubId) {
+      return targetUserId == clubDoc(clubId).data.club_master_id ||
+        targetUserId == clubDoc(clubId).data.president_id ||
+        targetUserId in clubDoc(clubId).data.organizers;
+    }
+
     function isClubRoleHolder(clubId) {
       return isClubManager(clubId) || isClubOrganizer(clubId);
     }
@@ -55,8 +96,10 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn() && sameCollege(resource.data.college_name);
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSignedIn() && sameTenant(resource.data);
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.institution_id is string;
       allow update: if isSignedIn() && (
         request.auth.uid == userId ||
         (
@@ -70,26 +113,74 @@ service cloud.firestore {
           ])
         )
       );
+
+      match /devices/{deviceId} {
+        allow read, create, update: if isSignedIn() && request.auth.uid == userId;
+        allow delete: if false;
+      }
     }
 
     match /clubs/{clubId} {
-      allow read: if isSignedIn() && sameCollege(resource.data.college_name);
+      allow read: if isSignedIn() && sameTenant(resource.data);
       allow create: if isSignedIn()
         && currentUser().user_type == 'faculty'
         && request.resource.data.club_master_id == request.auth.uid
+        && request.resource.data.institution_id is string
+        && request.resource.data.institution_id == currentUser().institution_id
         && request.resource.data.college_name == currentUser().college_name;
-      allow update: if isClubManager(clubId) && sameCollege(resource.data.college_name);
+      allow update: if isClubManager(clubId) && sameTenant(resource.data);
+      allow delete: if false;
+
+      match /memberships/{userId} {
+        allow read: if isSignedIn() && sameCollegeAsClub(clubId);
+        allow create: if isSignedIn()
+          && request.resource.data.user_id == userId
+          && request.resource.data.club_id == clubId
+          && request.resource.data.institution_id is string
+          && (
+            isClubManagerAfter(clubId) ||
+            (request.auth.uid == userId && sameCollegeAsClubAfter(clubId))
+          );
+        allow update: if (
+          isClubManager(clubId) && sameCollegeAsClub(clubId)
+        ) || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && sameCollegeAsClub(clubId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'role',
+            'updated_at'
+          ])
+          && request.resource.data.status == 'left'
+          && request.resource.data.role == 'member'
+        );
+        allow delete: if false;
+      }
+    }
+
+    match /users/{userId}/club_memberships/{clubId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn()
+        && request.resource.data.user_id == userId
+        && request.resource.data.club_id == clubId
+        && request.resource.data.institution_id is string
+        && (
+          request.auth.uid == userId ||
+          isClubManagerAfter(clubId) ||
+          isClubManager(clubId)
+        );
       allow delete: if false;
     }
 
     match /events/{eventId} {
-      allow read: if isSignedIn() && sameCollege(resource.data.college_name);
+      allow read: if isSignedIn() && sameTenant(resource.data);
       allow create: if isSignedIn()
-        && sameCollege(request.resource.data.college_name)
+        && sameTenant(request.resource.data)
         && sameCollegeAsClub(request.resource.data.club_id)
         && isClubRoleHolder(request.resource.data.club_id);
       allow update: if isSignedIn()
-        && sameCollege(resource.data.college_name)
+        && sameTenant(resource.data)
         && (
           isRsvpCountUpdate() ||
           (request.resource.data.status != resource.data.status && isClubMaster(resource.data.club_id)) ||
@@ -113,6 +204,8 @@ service cloud.firestore {
       );
       allow create: if isSignedIn()
         && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.institution_id is string
+        && sameInstitution(request.resource.data.institution_id)
         && sameCollegeAsClub(request.resource.data.club_id);
       allow update: if isClubManager(resource.data.club_id);
       allow delete: if false;
@@ -121,14 +214,61 @@ service cloud.firestore {
     match /notifications/{notificationId} {
       allow read, update: if isSignedIn() && resource.data.user_id == request.auth.uid;
       allow create: if isSignedIn()
-        && userDoc(request.resource.data.user_id).data.college_name == currentUser().college_name;
+        && request.resource.data.institution_id is string
+        && sameInstitution(request.resource.data.institution_id)
+        && request.resource.data.from_user_id == request.auth.uid
+        && request.resource.data.related_club_id is string
+        && sameCollegeAsClub(request.resource.data.related_club_id)
+        && sameTenant(userDoc(request.resource.data.user_id).data)
+        && (
+          request.resource.data.user_id == request.auth.uid ||
+          isClubManager(request.resource.data.related_club_id) ||
+          targetIsClubManager(
+            request.resource.data.user_id,
+            request.resource.data.related_club_id
+          )
+        );
       allow delete: if false;
     }
 
     match /announcements/{announcementId} {
       allow read: if isSignedIn() && sameCollegeAsClub(resource.data.club_id);
-      allow create: if isClubManager(request.resource.data.club_id);
+      allow create: if isClubManager(request.resource.data.club_id)
+        && request.resource.data.institution_id is string
+        && sameInstitution(request.resource.data.institution_id);
       allow update, delete: if isClubManager(resource.data.club_id);
+    }
+
+    match /audit_logs/{auditLogId} {
+      allow read: if isSignedIn()
+        && resource.data.institution_id is string
+        && sameInstitution(resource.data.institution_id);
+      allow create: if isSignedIn()
+        && request.resource.data.institution_id is string
+        && sameInstitution(request.resource.data.institution_id)
+        && request.resource.data.actor_user_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /storage_assets/{assetId} {
+      allow read: if isSignedIn()
+        && resource.data.institution_id is string
+        && sameInstitution(resource.data.institution_id);
+      allow create: if isSignedIn()
+        && request.resource.data.owner_id == request.auth.uid
+        && request.resource.data.institution_id is string
+        && sameInstitution(request.resource.data.institution_id)
+        && request.resource.data.storage_path is string
+        && request.resource.data.content_type.matches('image/.*')
+        && request.resource.data.size is int;
+      allow update: if isSignedIn()
+        && resource.data.owner_id == request.auth.uid
+        && request.resource.data.owner_id == resource.data.owner_id
+        && request.resource.data.storage_path == resource.data.storage_path
+        && request.resource.data.institution_id == resource.data.institution_id
+        && request.resource.data.content_type.matches('image/.*')
+        && request.resource.data.size is int;
+      allow delete: if false;
     }
   }
 }
