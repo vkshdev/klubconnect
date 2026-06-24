@@ -23,12 +23,15 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.dart_appdata/
+.dart_localappdata/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
 .pub/
 /build/
+**/build/
 
 # Symbolication related
 app.*.symbols
@@ -85,6 +88,7 @@ macos/Flutter/GeneratedPluginRegistrant.swift
 # Firebase Configuration - CRITICAL!
 **/google-services.json
 **/GoogleService-Info.plist
+lib/firebase_options.dart
 **/.env
 **/.env.local
 **/.env.*.local
