@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/institution_utils.dart';
+import '../utils/search_index_utils.dart';
 
 enum EventStatus { draft, pending, approved, rejected }
 
 class EventModel {
   final String eventId;
+  final String institutionId;
   final String title;
   final String description;
   final String clubId;
@@ -28,6 +31,7 @@ class EventModel {
 
   EventModel({
     required this.eventId,
+    this.institutionId = '',
     required this.title,
     required this.description,
     required this.clubId,
@@ -55,6 +59,8 @@ class EventModel {
     final data = doc.data() as Map<String, dynamic>;
     return EventModel(
       eventId: doc.id,
+      institutionId: data['institution_id'] ??
+          InstitutionUtils.idFromCollegeName(data['college_name'] ?? ''),
       title: data['title'] ?? '',
       description: data['description'] ?? '',
       clubId: data['club_id'] ?? '',
@@ -91,6 +97,17 @@ class EventModel {
   Map<String, dynamic> toFirestore() {
     return {
       'title': title,
+      'title_lower': SearchIndexUtils.normalize(title),
+      'search_keywords': SearchIndexUtils.keywords([
+        title,
+        clubName,
+        description,
+        location,
+        createdByName,
+      ]),
+      'institution_id': institutionId.isNotEmpty
+          ? institutionId
+          : InstitutionUtils.idFromCollegeName(collegeName),
       'description': description,
       'club_id': clubId,
       'club_name': clubName,

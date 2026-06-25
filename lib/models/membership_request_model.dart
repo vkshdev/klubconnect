@@ -4,6 +4,7 @@ enum RequestStatus { pending, approved, rejected }
 
 class MembershipRequestModel {
   final String requestId; // composite: club_id_user_id
+  final String institutionId;
   final String clubId;
   final String clubName;
   final String userId;
@@ -16,6 +17,7 @@ class MembershipRequestModel {
 
   MembershipRequestModel({
     required this.requestId,
+    this.institutionId = '',
     required this.clubId,
     required this.clubName,
     required this.userId,
@@ -31,6 +33,7 @@ class MembershipRequestModel {
     final data = doc.data() as Map<String, dynamic>;
     return MembershipRequestModel(
       requestId: doc.id,
+      institutionId: data['institution_id'] ?? '',
       clubId: data['club_id'] ?? '',
       clubName: data['club_name'] ?? '',
       userId: data['user_id'] ?? '',
@@ -41,9 +44,8 @@ class MembershipRequestModel {
       ),
       message: data['message'],
       requestedAt: _dateFrom(data['requested_at']),
-      respondedAt: data['responded_at'] != null
-          ? _dateFrom(data['responded_at'])
-          : null,
+      respondedAt:
+          data['responded_at'] != null ? _dateFrom(data['responded_at']) : null,
       respondedById: data['responded_by_id'],
     );
   }
@@ -51,13 +53,15 @@ class MembershipRequestModel {
   Map<String, dynamic> toFirestore() {
     return {
       'club_id': clubId,
+      if (institutionId.isNotEmpty) 'institution_id': institutionId,
       'club_name': clubName,
       'user_id': userId,
       'user_name': userName,
       'status': status.name,
       'message': message,
       'requested_at': Timestamp.fromDate(requestedAt),
-      'responded_at': respondedAt != null ? Timestamp.fromDate(respondedAt!) : null,
+      'responded_at':
+          respondedAt != null ? Timestamp.fromDate(respondedAt!) : null,
       'responded_by_id': respondedById,
     };
   }

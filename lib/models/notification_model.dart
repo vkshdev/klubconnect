@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NotificationModel {
   final String notificationId;
+  final String institutionId;
   final String userId;
   final String type; // 'membership_request', 'event_approved', etc.
   final String title;
@@ -16,6 +17,7 @@ class NotificationModel {
 
   NotificationModel({
     required this.notificationId,
+    this.institutionId = '',
     required this.userId,
     required this.type,
     required this.title,
@@ -33,6 +35,7 @@ class NotificationModel {
     final data = doc.data() as Map<String, dynamic>;
     return NotificationModel(
       notificationId: doc.id,
+      institutionId: data['institution_id'] ?? '',
       userId: data['user_id'] ?? '',
       type: data['type'] ?? '',
       title: data['title'] ?? '',
@@ -56,6 +59,7 @@ class NotificationModel {
   Map<String, dynamic> toFirestore() {
     return {
       'user_id': userId,
+      if (institutionId.isNotEmpty) 'institution_id': institutionId,
       'type': type,
       'title': title,
       'message': message,
