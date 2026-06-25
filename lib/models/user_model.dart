@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/institution_utils.dart';
+import '../utils/search_index_utils.dart';
 
 class UserModel {
   final String uid;
+  final String institutionId;
   final String email;
   final String phoneNumber;
   final String firstName;
@@ -43,6 +46,7 @@ class UserModel {
 
   UserModel({
     required this.uid,
+    this.institutionId = '',
     required this.email,
     required this.phoneNumber,
     required this.firstName,
@@ -83,6 +87,8 @@ class UserModel {
 
     return UserModel(
       uid: doc.id,
+      institutionId: data['institution_id'] ??
+          InstitutionUtils.idFromCollegeName(data['college_name'] ?? ''),
       email: data['email'] ?? '',
       phoneNumber: data['phone_number'] ?? '',
       firstName: data['first_name'] ?? '',
@@ -138,10 +144,22 @@ class UserModel {
   Map<String, dynamic> toFirestore() {
     final data = {
       'email': email,
+      'institution_id': institutionId.isNotEmpty
+          ? institutionId
+          : InstitutionUtils.idFromCollegeName(collegeName),
       'phone_number': phoneNumber,
       'first_name': firstName,
       'last_name': lastName,
       'full_name': fullName,
+      'full_name_lower': SearchIndexUtils.normalize(fullName),
+      'search_keywords': SearchIndexUtils.keywords([
+        fullName,
+        email,
+        enrollmentNumber,
+        course,
+        branch,
+        department,
+      ]),
       'user_type': userType,
       'gender': gender,
       'date_of_birth': Timestamp.fromDate(dateOfBirth),

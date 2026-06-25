@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/institution_utils.dart';
+import '../utils/search_index_utils.dart';
 
 class ClubModel {
   final String clubId;
+  final String institutionId;
   final String name;
   final String slug;
   final String description;
@@ -25,6 +28,7 @@ class ClubModel {
 
   ClubModel({
     required this.clubId,
+    this.institutionId = '',
     required this.name,
     required this.slug,
     required this.description,
@@ -51,6 +55,8 @@ class ClubModel {
     final data = doc.data() as Map<String, dynamic>;
     return ClubModel(
       clubId: doc.id,
+      institutionId: data['institution_id'] ??
+          InstitutionUtils.idFromCollegeName(data['college_name'] ?? ''),
       name: data['name'] ?? '',
       slug: data['slug'] ?? '',
       description: data['description'] ?? '',
@@ -83,6 +89,17 @@ class ClubModel {
   Map<String, dynamic> toFirestore() {
     return {
       'name': name,
+      'name_lower': SearchIndexUtils.normalize(name),
+      'search_keywords': SearchIndexUtils.keywords([
+        name,
+        category,
+        description,
+        clubMasterName,
+        presidentName,
+      ]),
+      'institution_id': institutionId.isNotEmpty
+          ? institutionId
+          : InstitutionUtils.idFromCollegeName(collegeName),
       'slug': slug,
       'description': description,
       'logo_url': logoUrl,
@@ -107,6 +124,7 @@ class ClubModel {
 
   ClubModel copyWith({
     String? name,
+    String? institutionId,
     String? slug,
     String? description,
     String? logoUrl,
@@ -129,6 +147,7 @@ class ClubModel {
   }) {
     return ClubModel(
       clubId: clubId,
+      institutionId: institutionId ?? this.institutionId,
       name: name ?? this.name,
       slug: slug ?? this.slug,
       description: description ?? this.description,

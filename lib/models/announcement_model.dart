@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AnnouncementModel {
   final String announcementId;
+  final String institutionId;
   final String clubId;
   final String clubName;
   final String title;
@@ -16,6 +17,7 @@ class AnnouncementModel {
 
   AnnouncementModel({
     required this.announcementId,
+    this.institutionId = '',
     required this.clubId,
     required this.clubName,
     required this.title,
@@ -33,6 +35,7 @@ class AnnouncementModel {
     final data = doc.data() as Map<String, dynamic>;
     return AnnouncementModel(
       announcementId: doc.id,
+      institutionId: data['institution_id'] ?? '',
       clubId: data['club_id'] ?? '',
       clubName: data['club_name'] ?? '',
       title: data['title'] ?? '',
@@ -56,6 +59,7 @@ class AnnouncementModel {
   Map<String, dynamic> toFirestore() {
     return {
       'club_id': clubId,
+      if (institutionId.isNotEmpty) 'institution_id': institutionId,
       'club_name': clubName,
       'title': title,
       'content': content,
