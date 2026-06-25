@@ -9,7 +9,6 @@ class AnnouncementService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AuditLogService _auditLogService = AuditLogService();
 
-  // Post Announcement
   Future<void> postAnnouncement(AnnouncementModel announcement) async {
     try {
       final id = const Uuid().v4();
@@ -35,7 +34,6 @@ class AnnouncementService {
     }
   }
 
-  // Get Club Announcements
   Stream<List<AnnouncementModel>> streamClubAnnouncements(String clubId) {
     return _firestore
         .collection('announcements')
@@ -48,7 +46,6 @@ class AnnouncementService {
             .toList());
   }
 
-  // Get All Announcements for User's Clubs
   Stream<List<AnnouncementModel>> streamUserClubsAnnouncements(
       List<String> clubIds) {
     if (clubIds.isEmpty) return Stream.value([]);
@@ -105,7 +102,6 @@ class AnnouncementService {
     return controller.stream;
   }
 
-  // Pin/Unpin Announcement
   Future<void> togglePin(String announcementId, bool isPinned) async {
     await _firestore
         .collection('announcements')
@@ -113,12 +109,10 @@ class AnnouncementService {
         .update({'is_pinned': isPinned});
   }
 
-  // Delete Announcement
   Future<void> deleteAnnouncement(String announcementId) async {
     await _firestore.collection('announcements').doc(announcementId).delete();
   }
 
-  // Increment View Count
   Future<void> incrementViewCount(String announcementId) async {
     await _firestore
         .collection('announcements')

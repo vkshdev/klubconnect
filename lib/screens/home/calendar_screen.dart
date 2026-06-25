@@ -52,7 +52,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final user = await _firestoreService.getUserById(uid);
       if (user == null) return;
 
-      // Stream events and convert to map
       await _eventsSubscription?.cancel();
       _eventsSubscription = _eventService
           .getApprovedEvents(

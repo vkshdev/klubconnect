@@ -21,7 +21,6 @@ class UserModel {
   final bool isActive;
   final bool profileCompleted;
 
-  // Student specific
   final String? enrollmentNumber;
   final bool? enrollmentVisible;
   final String? course;
@@ -32,13 +31,11 @@ class UserModel {
   final String? currentYearLabel;
   final String? address;
 
-  // Faculty specific
   final String? profession;
   final String? department;
   final int? collegeJoinedYear;
   final List<String>? specialization;
 
-  // Arrays
   final List<String> clubsJoined;
   final List<String> clubsCreated;
   final List<String> isPresidentOf;
@@ -81,7 +78,6 @@ class UserModel {
     this.isOrganizerOf = const [],
   });
 
-  // From Firestore
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
@@ -140,7 +136,6 @@ class UserModel {
     return DateTime.now();
   }
 
-  // To Firestore
   Map<String, dynamic> toFirestore() {
     final data = {
       'email': email,
@@ -176,7 +171,6 @@ class UserModel {
       'is_organizer_of': isOrganizerOf,
     };
 
-    // Add student specific fields
     if (userType == 'student') {
       data['enrollment_number'] = enrollmentNumber;
       data['enrollment_visible'] = enrollmentVisible;
@@ -189,7 +183,6 @@ class UserModel {
       data['address'] = address;
     }
 
-    // Add faculty specific fields
     if (userType == 'faculty') {
       data['profession'] = profession;
       data['department'] = department;
@@ -200,7 +193,6 @@ class UserModel {
     return data;
   }
 
-  // Calculate current year label
   static String calculateYearLabel(int sessionStartYear, int sessionEndYear) {
     final currentYear = DateTime.now().year;
     final yearNumber = (currentYear - sessionStartYear) + 1;

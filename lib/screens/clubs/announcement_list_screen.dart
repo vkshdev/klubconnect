@@ -79,7 +79,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
 
     if (user != null) {
       final announcement = AnnouncementModel(
-        announcementId: '', // Service handles ID
+        announcementId: '',
         institutionId: user.institutionId,
         clubId: widget.clubId,
         clubName: widget.clubName,

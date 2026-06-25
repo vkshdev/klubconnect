@@ -21,7 +21,6 @@ class AuthService extends ChangeNotifier {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Send Magic Link to Email
   Future<Map<String, dynamic>> sendMagicLink(String email) async {
     try {
       var acs = ActionCodeSettings(
@@ -50,7 +49,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Complete Sign In with Email Link
   Future<Map<String, dynamic>> signInWithEmailLink(
       String email, String emailLink) async {
     try {
@@ -60,7 +58,6 @@ class AuthService extends ChangeNotifier {
           emailLink: emailLink,
         );
 
-        // Update last login
         await _firestoreService.updateUserLastLogin(userCredential.user!.uid);
 
         return {
@@ -81,7 +78,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Register with Email and Password
   Future<Map<String, dynamic>> registerWithEmailPassword({
     required String email,
     required String password,
@@ -123,7 +119,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Sign In with Email and Password
   Future<Map<String, dynamic>> signInWithEmailPassword({
     required String email,
     required String password,
@@ -161,7 +156,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Send OTP to Phone
   Future<Map<String, dynamic>> sendPhoneOTP(String phoneNumber) async {
     try {
       await _auth.verifyPhoneNumber(
@@ -188,7 +182,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Verify Phone OTP
   Future<Map<String, dynamic>> verifyPhoneOTP(String otp) async {
     try {
       if (_verificationId == null) {
@@ -212,7 +205,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Sign Out
   Future<void> signOut() async {
     try {
       if (_user != null) {
@@ -224,7 +216,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Reset Password
   Future<Map<String, dynamic>> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);

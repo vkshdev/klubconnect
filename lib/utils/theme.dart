@@ -97,5 +97,5 @@ class AppTheme {
     ),
   );
 
-  static ThemeData get darkTheme => lightTheme; // Unified professional look
+  static ThemeData get darkTheme => lightTheme;
 }

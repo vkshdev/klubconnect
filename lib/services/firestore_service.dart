@@ -10,7 +10,6 @@ import '../utils/search_index_utils.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Create User Document
   Future<void> createUser({
     required String uid,
     required Map<String, dynamic> userData,
@@ -53,7 +52,6 @@ class FirestoreService {
     }
   }
 
-  // Get User by ID
   Future<UserModel?> getUserById(String uid) async {
     try {
       final doc = await _firestore
@@ -73,7 +71,6 @@ class FirestoreService {
     }
   }
 
-  // Stream User Data
   Stream<UserModel?> streamUser(String uid) {
     return _firestore
         .collection(AppConstants.usersCollection)
@@ -133,7 +130,6 @@ class FirestoreService {
     return source;
   }
 
-  // Update User Profile
   Future<void> updateUserProfile({
     required String uid,
     required Map<String, dynamic> updates,
@@ -154,7 +150,6 @@ class FirestoreService {
     }
   }
 
-  // Update Last Login
   Future<void> updateUserLastLogin(String uid) async {
     try {
       await _firestore
@@ -171,7 +166,6 @@ class FirestoreService {
     }
   }
 
-  // Update Online Status
   Future<void> updateUserOnlineStatus(String uid, bool isOnline) async {
     try {
       await _firestore
@@ -188,7 +182,6 @@ class FirestoreService {
     }
   }
 
-  // Mark Profile as Complete
   Future<void> markProfileComplete(String uid) async {
     try {
       await _firestore
@@ -206,7 +199,6 @@ class FirestoreService {
     }
   }
 
-  // Check if Email Exists
   Future<bool> checkEmailExists(String email) async {
     try {
       final querySnapshot = await _firestore
@@ -224,7 +216,6 @@ class FirestoreService {
     }
   }
 
-  // Check if Enrollment Number Exists
   Future<bool> checkEnrollmentExists(String enrollmentNumber) async {
     try {
       final querySnapshot = await _firestore
@@ -242,7 +233,6 @@ class FirestoreService {
     }
   }
 
-  // Update Profile Image URL
   Future<void> updateProfileImage(String uid, String imageUrl) async {
     try {
       await _firestore

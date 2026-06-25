@@ -1,5 +1,4 @@
 class Validators {
-  // Email Validation
   static String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Email is required';
@@ -13,13 +12,11 @@ class Validators {
     return null;
   }
 
-  // Phone Validation
   static String? validatePhone(String? value) {
     if (value == null || value.isEmpty) {
       return 'Phone number is required';
     }
 
-    // Remove spaces and special characters
     final cleanPhone = value.replaceAll(RegExp(r'[^\d+]'), '');
 
     if (cleanPhone.length < 10) {
@@ -29,7 +26,6 @@ class Validators {
     return null;
   }
 
-  // Password Validation
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Password is required';
@@ -58,7 +54,6 @@ class Validators {
     return null;
   }
 
-  // Name Validation
   static String? validateName(String? value, String fieldName) {
     if (value == null || value.isEmpty) {
       return '$fieldName is required';
@@ -76,7 +71,6 @@ class Validators {
     return null;
   }
 
-  // Required Field
   static String? validateRequired(String? value, [String fieldName = 'Field']) {
     if (value == null || value.trim().isEmpty) {
       return '$fieldName is required';
@@ -84,7 +78,6 @@ class Validators {
     return null;
   }
 
-  // Enrollment Number
   static String? validateEnrollment(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Enrollment number is required';
@@ -102,7 +95,6 @@ class Validators {
     return null;
   }
 
-  // About/Bio Validation
   static String? validateAbout(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'About section is required';
@@ -120,7 +112,6 @@ class Validators {
     return null;
   }
 
-  // Confirm Password
   static String? validateConfirmPassword(String? value, String password) {
     if (value == null || value.isEmpty) {
       return 'Please confirm your password';
@@ -133,7 +124,6 @@ class Validators {
     return null;
   }
 
-  // Sanitize input
   static String sanitize(String value) {
     return value.trim().replaceAll(RegExp(r'[<>]'), '');
   }

@@ -29,7 +29,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   int _currentPage = 0;
   bool _isLoading = false;
 
-  // Controllers - Common Fields
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -38,11 +37,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _confirmPasswordController = TextEditingController();
   final _collegeNameController = TextEditingController();
 
-  // Date of Birth
   DateTime? _selectedDOB;
   String? _selectedGender;
 
-  // Student Specific
   final _enrollmentController = TextEditingController();
   String? _selectedCourse;
   String? _selectedBranch;
@@ -50,7 +47,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   int? _sessionEndYear;
   final _addressController = TextEditingController();
 
-  // Faculty Specific
   String? _selectedProfession;
   String? _selectedDepartment;
   int? _collegeJoinedYear;
@@ -146,7 +142,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       setState(() {
                         if (isStartYear) {
                           _sessionStartYear = years[index];
-                          // Auto calculate end year based on course
                           if (_selectedCourse != null) {
                             _sessionEndYear = _calculateEndYear(
                               years[index],
@@ -188,7 +183,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Future<void> _submitRegistration() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Additional validations
     if (_selectedDOB == null) {
       Fluttertoast.showToast(msg: 'Please select date of birth');
       return;
@@ -202,7 +196,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     final authService = Provider.of<AuthService>(context, listen: false);
 
-    // Prepare user data
     final userData = {
       'email': _emailController.text.trim().toLowerCase(),
       'phone_number': '+91${_phoneController.text.trim()}',
@@ -218,7 +211,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       'college_name': _collegeNameController.text.trim(),
     };
 
-    // Add type-specific data
     if (isStudent) {
       userData.addAll({
         'enrollment_number': _enrollmentController.text.trim().toUpperCase(),
@@ -238,7 +230,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       });
     }
 
-    // Register user
     final result = await authService.registerWithEmailPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
@@ -248,7 +239,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      // Navigate directly to Profile Setup (Skipping OTP)
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
@@ -547,7 +537,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Date of Birth
           InkWell(
             onTap: () => _selectDate(context),
             child: Container(
@@ -584,7 +573,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Gender Selection
           CustomDropdown(
             label: 'Gender',
             value: _selectedGender,
@@ -640,8 +628,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               onChanged: (value) {
                 setState(() {
                   _selectedCourse = value;
-                  _selectedBranch = null; // Reset branch
-                  // Auto calculate end year if start year is selected
+                  _selectedBranch = null;
                   if (_sessionStartYear != null && value != null) {
                     _sessionEndYear =
                         _calculateEndYear(_sessionStartYear!, value);
