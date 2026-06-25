@@ -24,7 +24,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final userId = authService.currentUser?.uid;
 
     if (userId == null) {
-      return const Scaffold(body: Center(child: Text('Please login to view notifications.')));
+      return const Scaffold(
+          body: Center(child: Text('Please login to view notifications.')));
     }
 
     return Scaffold(
@@ -34,7 +35,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).primaryColor.withOpacity(0.1),
+              Theme.of(context).primaryColor.withValues(alpha: 0.1),
               Colors.white,
             ],
           ),
@@ -61,7 +62,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     IconButton(
                       icon: const Icon(Icons.done_all),
                       tooltip: 'Mark all as read',
-                      onPressed: () => _notificationService.markAllAsRead(userId),
+                      onPressed: () =>
+                          _notificationService.markAllAsRead(userId),
                     ),
                   ],
                 ),
@@ -78,7 +80,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.notifications_none_outlined, size: 64, color: Colors.grey.shade300),
+                            Icon(Icons.notifications_none_outlined,
+                                size: 64, color: Colors.grey.shade300),
                             const SizedBox(height: 16),
                             const Text('No notifications yet'),
                           ],
@@ -97,7 +100,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           child: _NotificationItem(
                             notification: notification,
                             onTap: () {
-                              _notificationService.markAsRead(notification.notificationId);
+                              _notificationService
+                                  .markAsRead(notification.notificationId);
                               _openNotification(notification);
                             },
                           ),
@@ -119,7 +123,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => EventDetailsScreen(eventId: notification.relatedEventId!),
+          builder: (context) =>
+              EventDetailsScreen(eventId: notification.relatedEventId!),
         ),
       );
       return;
@@ -128,7 +133,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ClubDetailsScreen(clubId: notification.relatedClubId!),
+          builder: (context) =>
+              ClubDetailsScreen(clubId: notification.relatedClubId!),
         ),
       );
     }
@@ -162,7 +168,9 @@ class _NotificationItem extends StatelessWidget {
                   Text(
                     notification.title,
                     style: TextStyle(
-                      fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+                      fontWeight: notification.isRead
+                          ? FontWeight.normal
+                          : FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
@@ -176,7 +184,8 @@ class _NotificationItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    DateFormat('MMM dd, hh:mm a').format(notification.createdAt),
+                    DateFormat('MMM dd, hh:mm a')
+                        .format(notification.createdAt),
                     style: TextStyle(
                       color: Colors.grey.shade500,
                       fontSize: 12,
@@ -230,7 +239,7 @@ class _NotificationItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(iconData, color: color, size: 24),
