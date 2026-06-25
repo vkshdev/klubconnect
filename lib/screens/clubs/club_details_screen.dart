@@ -1,8 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/club_model.dart';
+import '../../models/club_membership_model.dart';
 import '../../models/event_model.dart';
 import '../../models/membership_request_model.dart';
 import '../../models/user_model.dart';
@@ -12,6 +14,7 @@ import '../../services/event_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/membership_service.dart';
 import '../../services/notification_service.dart';
+import '../../widgets/cached_remote_image.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/glass_card.dart';
 import '../events/create_event_screen.dart';
@@ -49,12 +52,17 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
     if (mounted) setState(() => _currentUser = user);
   }
 
-  bool _isMember(ClubModel club) => _currentUser != null && club.members.contains(_currentUser!.uid);
-  bool _isPresident(ClubModel club) => _currentUser != null && club.presidentId == _currentUser!.uid;
-  bool _isOrganizer(ClubModel club) => _currentUser != null && club.organizers.contains(_currentUser!.uid);
-  bool _isClubMaster(ClubModel club) => _currentUser != null && club.clubMasterId == _currentUser!.uid;
+  bool _isMember(ClubModel club) =>
+      _currentUser != null && club.members.contains(_currentUser!.uid);
+  bool _isPresident(ClubModel club) =>
+      _currentUser != null && club.presidentId == _currentUser!.uid;
+  bool _isOrganizer(ClubModel club) =>
+      _currentUser != null && club.organizers.contains(_currentUser!.uid);
+  bool _isClubMaster(ClubModel club) =>
+      _currentUser != null && club.clubMasterId == _currentUser!.uid;
   bool _canManage(ClubModel club) => _isPresident(club) || _isClubMaster(club);
-  bool _canCreateEvent(ClubModel club) => _canManage(club) || _isOrganizer(club);
+  bool _canCreateEvent(ClubModel club) =>
+      _canManage(club) || _isOrganizer(club);
 
   Future<void> _sendJoinRequest(ClubModel club) async {
     if (_currentUser == null) return;
@@ -67,6 +75,7 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
       );
       await _notificationService.sendNotification(
         userId: club.presidentId,
+        institutionId: club.institutionId,
         type: 'membership_request',
         title: 'New membership request',
         message: '${_currentUser!.fullName} requested to join ${club.name}.',
@@ -76,6 +85,7 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
       if (club.clubMasterId != club.presidentId) {
         await _notificationService.sendNotification(
           userId: club.clubMasterId,
+          institutionId: club.institutionId,
           type: 'membership_request',
           title: 'New membership request',
           message: '${_currentUser!.fullName} requested to join ${club.name}.',
@@ -111,8 +121,13 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
     );
     await _notificationService.sendNotification(
       userId: request.userId,
-      type: status == RequestStatus.approved ? 'membership_approved' : 'membership_rejected',
-      title: status == RequestStatus.approved ? 'Membership approved' : 'Membership rejected',
+      institutionId: request.institutionId,
+      type: status == RequestStatus.approved
+          ? 'membership_approved'
+          : 'membership_rejected',
+      title: status == RequestStatus.approved
+          ? 'Membership approved'
+          : 'Membership rejected',
       message: status == RequestStatus.approved
           ? 'Your request to join ${request.clubName} was approved.'
           : 'Your request to join ${request.clubName} was rejected.',
@@ -120,22 +135,36 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
       relatedClubId: request.clubId,
     );
     Fluttertoast.showToast(
-      msg: status == RequestStatus.approved ? 'Request approved.' : 'Request rejected.',
+      msg: status == RequestStatus.approved
+          ? 'Request approved.'
+          : 'Request rejected.',
     );
   }
 
   Future<void> _updateEventStatus(EventModel event, EventStatus status) async {
-    await _eventService.updateEventStatus(event.eventId, status);
+    await _eventService.updateEventStatus(
+      event.eventId,
+      status,
+      actorUserId: _currentUser!.uid,
+      institutionId: event.institutionId,
+    );
     await _notificationService.sendNotification(
       userId: event.createdById,
-      type: status == EventStatus.approved ? 'event_approved' : 'event_rejected',
-      title: status == EventStatus.approved ? 'Event approved' : 'Event rejected',
-      message: '${event.title} was ${status == EventStatus.approved ? 'approved' : 'rejected'}.',
+      institutionId: event.institutionId,
+      type:
+          status == EventStatus.approved ? 'event_approved' : 'event_rejected',
+      title:
+          status == EventStatus.approved ? 'Event approved' : 'Event rejected',
+      message:
+          '${event.title} was ${status == EventStatus.approved ? 'approved' : 'rejected'}.',
+      fromUserId: _currentUser!.uid,
       relatedClubId: event.clubId,
       relatedEventId: event.eventId,
     );
     Fluttertoast.showToast(
-      msg: status == EventStatus.approved ? 'Event approved.' : 'Event rejected.',
+      msg: status == EventStatus.approved
+          ? 'Event approved.'
+          : 'Event rejected.',
     );
   }
 
@@ -144,8 +173,10 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
     return StreamBuilder<ClubModel?>(
       stream: _clubService.streamClub(widget.clubId),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting || _currentUser == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (snapshot.connectionState == ConnectionState.waiting ||
+            _currentUser == null) {
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
         }
         final club = snapshot.data;
         if (club == null) {
@@ -210,7 +241,9 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(club.category, style: TextStyle(color: Theme.of(context).primaryColor)),
+                        Text(club.category,
+                            style: TextStyle(
+                                color: Theme.of(context).primaryColor)),
                         Text(
                           '${club.totalMembers} members',
                           style: const TextStyle(fontWeight: FontWeight.w700),
@@ -255,7 +288,8 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
                   icon: Icons.add_circle_outline,
                   onPressed: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => CreateEventScreen(club: club)),
+                    MaterialPageRoute(
+                        builder: (context) => CreateEventScreen(club: club)),
                   ),
                 ),
               ),
@@ -268,28 +302,34 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
 
   Widget _buildMembershipAction(ClubModel club) {
     if (_isClubMaster(club)) {
-      return const _StatusPill(label: 'Club Master', icon: Icons.workspace_premium_outlined);
+      return const _StatusPill(
+          label: 'Club Master', icon: Icons.workspace_premium_outlined);
     }
     if (_isPresident(club)) {
-      return const _StatusPill(label: 'President', icon: Icons.verified_outlined);
+      return const _StatusPill(
+          label: 'President', icon: Icons.verified_outlined);
     }
     if (_isOrganizer(club)) {
-      return const _StatusPill(label: 'Organizer', icon: Icons.event_available_outlined);
+      return const _StatusPill(
+          label: 'Organizer', icon: Icons.event_available_outlined);
     }
     if (_isMember(club)) {
       return CustomButton(
         text: 'Leave Club',
         icon: Icons.logout,
-        gradient: LinearGradient(colors: [Colors.red.shade400, Colors.red.shade700]),
+        gradient:
+            LinearGradient(colors: [Colors.red.shade400, Colors.red.shade700]),
         onPressed: () => _leaveClub(club),
       );
     }
     return StreamBuilder<MembershipRequestModel?>(
-      stream: _membershipService.streamUserRequest(clubId: club.clubId, userId: _currentUser!.uid),
+      stream: _membershipService.streamUserRequest(
+          clubId: club.clubId, userId: _currentUser!.uid),
       builder: (context, snapshot) {
         final request = snapshot.data;
         if (request?.status == RequestStatus.pending) {
-          return const _StatusPill(label: 'Request Pending', icon: Icons.hourglass_top_outlined);
+          return const _StatusPill(
+              label: 'Request Pending', icon: Icons.hourglass_top_outlined);
         }
         return CustomButton(
           text: 'Request to Join',
@@ -308,7 +348,9 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         final events = (snapshot.data ?? []).where((event) {
-          return _canManage(club) || _isOrganizer(club) || event.status == EventStatus.approved;
+          return _canManage(club) ||
+              _isOrganizer(club) ||
+              event.status == EventStatus.approved;
         }).toList();
         if (events.isEmpty) return const Center(child: Text('No events yet.'));
 
@@ -326,15 +368,21 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
                     children: [
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-                        subtitle: Text('${event.eventDate.day}/${event.eventDate.month}/${event.eventDate.year} at ${event.eventTime}'),
+                        title: Text(event.title,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w800)),
+                        subtitle: Text(
+                            '${event.eventDate.day}/${event.eventDate.month}/${event.eventDate.year} at ${event.eventTime}'),
                         trailing: _EventStatusChip(status: event.status),
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => EventDetailsScreen(eventId: event.eventId)),
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  EventDetailsScreen(eventId: event.eventId)),
                         ),
                       ),
-                      if (_isClubMaster(club) && event.status == EventStatus.pending) ...[
+                      if (_isClubMaster(club) &&
+                          event.status == EventStatus.pending) ...[
                         const Divider(),
                         Row(
                           children: [
@@ -342,7 +390,8 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
                               child: OutlinedButton.icon(
                                 icon: const Icon(Icons.close),
                                 label: const Text('Reject'),
-                                onPressed: () => _updateEventStatus(event, EventStatus.rejected),
+                                onPressed: () => _updateEventStatus(
+                                    event, EventStatus.rejected),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -350,7 +399,8 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
                               child: ElevatedButton.icon(
                                 icon: const Icon(Icons.check),
                                 label: const Text('Approve'),
-                                onPressed: () => _updateEventStatus(event, EventStatus.approved),
+                                onPressed: () => _updateEventStatus(
+                                    event, EventStatus.approved),
                               ),
                             ),
                           ],
@@ -368,6 +418,31 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
   }
 
   Widget _buildMembers(ClubModel club) {
+    return StreamBuilder<List<ClubMembershipModel>>(
+      stream: _clubService.streamClubMemberships(club.clubId),
+      builder: (context, snapshot) {
+        final memberships = snapshot.data ?? [];
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (memberships.isEmpty && club.members.isNotEmpty) {
+          return _buildLegacyMembers(club);
+        }
+        if (memberships.isEmpty) {
+          return const Center(child: Text('No members yet.'));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: memberships.length,
+          itemBuilder: (context, index) {
+            return _buildMembershipTile(club, memberships[index]);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildLegacyMembers(ClubModel club) {
     return StreamBuilder<List<UserModel>>(
       stream: _clubService.streamClubMembers(club.members),
       builder: (context, snapshot) {
@@ -375,63 +450,103 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (members.isEmpty) return const Center(child: Text('No members yet.'));
+        if (members.isEmpty) {
+          return const Center(child: Text('No members yet.'));
+        }
         return ListView.builder(
           padding: const EdgeInsets.all(20),
           itemCount: members.length,
           itemBuilder: (context, index) {
             final member = members[index];
-            final isPresident = club.presidentId == member.uid;
-            final isOrganizer = club.organizers.contains(member.uid);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: GlassCard(
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundImage: member.profileImageUrl != null ? NetworkImage(member.profileImageUrl!) : null,
-                    child: member.profileImageUrl == null && member.firstName.isNotEmpty
-                        ? Text(member.firstName[0].toUpperCase())
-                        : null,
-                  ),
-                  title: Text(member.fullName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(isPresident ? 'President' : isOrganizer ? 'Organizer' : 'Member'),
-                  trailing: _canManage(club) && !isPresident && member.uid != _currentUser?.uid
-                      ? PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            if (value == 'organizer') {
-                              await _membershipService.setOrganizerRole(
-                                clubId: club.clubId,
-                                userId: member.uid,
-                                isOrganizer: !isOrganizer,
-                              );
-                            } else if (value == 'president') {
-                              await _membershipService.assignPresident(
-                                clubId: club.clubId,
-                                oldPresidentId: club.presidentId,
-                                newPresidentId: member.uid,
-                                newPresidentName: member.fullName,
-                              );
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'organizer',
-                              child: Text(isOrganizer ? 'Remove organizer' : 'Make organizer'),
-                            ),
-                            const PopupMenuItem(
-                              value: 'president',
-                              child: Text('Make president'),
-                            ),
-                          ],
-                        )
-                      : null,
-                ),
-              ),
+            final role = club.presidentId == member.uid
+                ? ClubMembershipRole.president
+                : club.organizers.contains(member.uid)
+                    ? ClubMembershipRole.organizer
+                    : ClubMembershipRole.member;
+            final membership = ClubMembershipModel(
+              membershipId: member.uid,
+              clubId: club.clubId,
+              userId: member.uid,
+              userName: member.fullName,
+              userProfileImageUrl: member.profileImageUrl,
+              institutionId: club.institutionId,
+              role: role,
+              joinedAt: DateTime.now(),
+              updatedAt: DateTime.now(),
             );
+            return _buildMembershipTile(club, membership);
           },
         );
       },
+    );
+  }
+
+  Widget _buildMembershipTile(ClubModel club, ClubMembershipModel membership) {
+    final isPresident = membership.role == ClubMembershipRole.president ||
+        club.presidentId == membership.userId;
+    final isOrganizer = membership.role == ClubMembershipRole.organizer ||
+        club.organizers.contains(membership.userId);
+    final displayName =
+        membership.userName.isEmpty ? 'Member' : membership.userName;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: CircleAvatar(
+            backgroundImage: membership.userProfileImageUrl != null
+                ? CachedNetworkImageProvider(membership.userProfileImageUrl!)
+                : null,
+            child:
+                membership.userProfileImageUrl == null && displayName.isNotEmpty
+                    ? Text(displayName[0].toUpperCase())
+                    : null,
+          ),
+          title: Text(displayName,
+              style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(isPresident
+              ? 'President'
+              : isOrganizer
+                  ? 'Organizer'
+                  : 'Member'),
+          trailing: _canManage(club) &&
+                  !isPresident &&
+                  membership.userId != _currentUser?.uid
+              ? PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'organizer') {
+                      await _membershipService.setOrganizerRole(
+                        clubId: club.clubId,
+                        userId: membership.userId,
+                        actorUserId: _currentUser!.uid,
+                        isOrganizer: !isOrganizer,
+                      );
+                    } else if (value == 'president') {
+                      await _membershipService.assignPresident(
+                        clubId: club.clubId,
+                        oldPresidentId: club.presidentId,
+                        newPresidentId: membership.userId,
+                        newPresidentName: displayName,
+                        actorUserId: _currentUser!.uid,
+                      );
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'organizer',
+                      child: Text(
+                          isOrganizer ? 'Remove organizer' : 'Make organizer'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'president',
+                      child: Text('Make president'),
+                    ),
+                  ],
+                )
+              : null,
+        ),
+      ),
     );
   }
 
@@ -443,7 +558,9 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (requests.isEmpty) return const Center(child: Text('No pending requests.'));
+        if (requests.isEmpty) {
+          return const Center(child: Text('No pending requests.'));
+        }
         return ListView.builder(
           padding: const EdgeInsets.all(20),
           itemCount: requests.length,
@@ -455,7 +572,9 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(request.userName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    Text(request.userName,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 16)),
                     if ((request.message ?? '').isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Text(request.message!),
@@ -467,7 +586,8 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.close),
                             label: const Text('Reject'),
-                            onPressed: () => _respondToRequest(request, RequestStatus.rejected),
+                            onPressed: () => _respondToRequest(
+                                request, RequestStatus.rejected),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -475,7 +595,8 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
                           child: ElevatedButton.icon(
                             icon: const Icon(Icons.check),
                             label: const Text('Approve'),
-                            onPressed: () => _respondToRequest(request, RequestStatus.approved),
+                            onPressed: () => _respondToRequest(
+                                request, RequestStatus.approved),
                           ),
                         ),
                       ],
@@ -503,18 +624,21 @@ class _ClubHero extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         if (club.bannerUrl.isNotEmpty)
-          Image.network(club.bannerUrl, fit: BoxFit.cover)
+          CachedRemoteImage(imageUrl: club.bannerUrl)
         else
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [color.withOpacity(0.95), const Color(0xFF111827)],
+                colors: [
+                  color.withValues(alpha: 0.95),
+                  const Color(0xFF111827)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
           ),
-        Container(color: Colors.black.withOpacity(0.28)),
+        Container(color: Colors.black.withValues(alpha: 0.28)),
         Align(
           alignment: Alignment.bottomLeft,
           child: Padding(
@@ -550,8 +674,12 @@ class _ClubLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: size / 2,
-      backgroundImage: club.logoUrl.isNotEmpty ? NetworkImage(club.logoUrl) : null,
-      child: club.logoUrl.isEmpty && club.name.isNotEmpty ? Text(club.name[0].toUpperCase()) : null,
+      backgroundImage: club.logoUrl.isNotEmpty
+          ? CachedNetworkImageProvider(club.logoUrl)
+          : null,
+      child: club.logoUrl.isEmpty && club.name.isNotEmpty
+          ? Text(club.name[0].toUpperCase())
+          : null,
     );
   }
 }
@@ -567,7 +695,7 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withOpacity(0.1),
+        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -575,7 +703,10 @@ class _StatusPill extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: Theme.of(context).primaryColor),
           const SizedBox(width: 8),
-          Text(label, style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w700)),
+          Text(label,
+              style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.w700)),
         ],
       ),
     );

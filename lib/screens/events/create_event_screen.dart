@@ -13,6 +13,7 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/event_service.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/institution_utils.dart';
 import '../../utils/validators.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -108,7 +109,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Future<void> _createEvent() async {
     if (!_formKey.currentState!.validate()) return;
     if (_currentUser == null || _creatorRole == null) {
-      Fluttertoast.showToast(msg: 'You do not have permission to create events for this club.');
+      Fluttertoast.showToast(
+          msg: 'You do not have permission to create events for this club.');
       return;
     }
 
@@ -116,9 +118,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
     try {
       final eventId = const Uuid().v4();
-      final status = _creatorRole == 'Club Master' ? EventStatus.approved : EventStatus.pending;
+      final status = _creatorRole == 'Club Master'
+          ? EventStatus.approved
+          : EventStatus.pending;
       final event = EventModel(
         eventId: eventId,
+        institutionId: widget.club.institutionId.isNotEmpty
+            ? widget.club.institutionId
+            : InstitutionUtils.idFromCollegeName(widget.club.collegeName),
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         clubId: widget.club.clubId,
@@ -133,7 +140,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         location: _locationController.text.trim(),
         venueType: _venueType,
         bannerUrl: null,
-        maxParticipants: int.tryParse(_maxParticipantsController.text.trim()) ?? 100,
+        maxParticipants:
+            int.tryParse(_maxParticipantsController.text.trim()) ?? 100,
         status: status,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -145,6 +153,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         final bannerUrl = await _eventService.uploadEventBanner(
           eventId: eventId,
           image: _bannerImage!,
+          ownerId: _currentUser!.uid,
+          institutionId: event.institutionId,
         );
         await _eventService.updateEvent(eventId, {'banner_url': bannerUrl});
       }
@@ -180,7 +190,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   children: [
                     if (creatorRole == null)
                       const GlassCard(
-                        child: Text('Only the club master, president, or organizers can create events.'),
+                        child: Text(
+                            'Only the club master, president, or organizers can create events.'),
                       )
                     else ...[
                       GlassCard(
@@ -190,7 +201,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               controller: _titleController,
                               label: 'Event Title',
                               hint: 'Design Sprint Workshop',
-                              validator: (value) => Validators.validateRequired(value, 'Event title'),
+                              validator: (value) => Validators.validateRequired(
+                                  value, 'Event title'),
                             ),
                             const SizedBox(height: 16),
                             CustomTextField(
@@ -198,7 +210,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               label: 'Description',
                               hint: 'What should attendees expect?',
                               maxLines: 4,
-                              validator: (value) => Validators.validateRequired(value, 'Description'),
+                              validator: (value) => Validators.validateRequired(
+                                  value, 'Description'),
                             ),
                           ],
                         ),
@@ -210,7 +223,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             ListTile(
                               contentPadding: EdgeInsets.zero,
                               title: const Text('Event Date'),
-                              subtitle: Text('${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}'),
+                              subtitle: Text(
+                                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}'),
                               trailing: const Icon(Icons.calendar_today),
                               onTap: _selectDate,
                             ),
@@ -219,7 +233,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               controller: _timeController,
                               label: 'Event Time',
                               hint: 'Choose a time',
-                              validator: (value) => Validators.validateRequired(value, 'Event time'),
+                              validator: (value) => Validators.validateRequired(
+                                  value, 'Event time'),
                               suffixIcon: IconButton(
                                 icon: const Icon(Icons.schedule),
                                 onPressed: _selectTime,
@@ -233,28 +248,40 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         child: Column(
                           children: [
                             DropdownButtonFormField<String>(
-                              value: _venueType,
-                              decoration: const InputDecoration(labelText: 'Venue Type'),
+                              initialValue: _venueType,
+                              decoration: const InputDecoration(
+                                  labelText: 'Venue Type'),
                               items: const [
-                                DropdownMenuItem(value: 'offline', child: Text('Offline')),
-                                DropdownMenuItem(value: 'online', child: Text('Online')),
+                                DropdownMenuItem(
+                                    value: 'offline', child: Text('Offline')),
+                                DropdownMenuItem(
+                                    value: 'online', child: Text('Online')),
                               ],
-                              onChanged: (value) => setState(() => _venueType = value ?? 'offline'),
+                              onChanged: (value) => setState(
+                                  () => _venueType = value ?? 'offline'),
                             ),
                             const SizedBox(height: 16),
                             CustomTextField(
                               controller: _locationController,
-                              label: _venueType == 'online' ? 'Meeting Link' : 'Location',
-                              hint: _venueType == 'online' ? 'Paste meeting link' : 'Auditorium, Block A',
-                              validator: (value) => Validators.validateRequired(value, 'Location'),
+                              label: _venueType == 'online'
+                                  ? 'Meeting Link'
+                                  : 'Location',
+                              hint: _venueType == 'online'
+                                  ? 'Paste meeting link'
+                                  : 'Auditorium, Block A',
+                              validator: (value) => Validators.validateRequired(
+                                  value, 'Location'),
                             ),
                             const SizedBox(height: 16),
                             CustomTextField(
                               controller: _maxParticipantsController,
                               label: 'Max Participants',
                               keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                              validator: (value) => Validators.validateRequired(value, 'Max participants'),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              validator: (value) => Validators.validateRequired(
+                                  value, 'Max participants'),
                             ),
                           ],
                         ),
@@ -268,21 +295,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             child: Container(
                               width: 56,
                               height: 56,
-                              color: Colors.white.withOpacity(0.65),
+                              color: Colors.white.withValues(alpha: 0.65),
                               child: _bannerImage == null
                                   ? const Icon(Icons.image_outlined)
-                                  : Image.file(_bannerImage!, fit: BoxFit.cover),
+                                  : Image.file(_bannerImage!,
+                                      fit: BoxFit.cover),
                             ),
                           ),
-                          title: const Text('Event Banner', style: TextStyle(fontWeight: FontWeight.w700)),
-                          subtitle: Text(_bannerImage == null ? 'Optional wide image' : 'Banner selected'),
+                          title: const Text('Event Banner',
+                              style: TextStyle(fontWeight: FontWeight.w700)),
+                          subtitle: Text(_bannerImage == null
+                              ? 'Optional wide image'
+                              : 'Banner selected'),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: _pickBanner,
                         ),
                       ),
                       const SizedBox(height: 28),
                       CustomButton(
-                        text: creatorRole == 'Club Master' ? 'Publish Event' : 'Submit for Approval',
+                        text: creatorRole == 'Club Master'
+                            ? 'Publish Event'
+                            : 'Submit for Approval',
                         icon: Icons.event_available_outlined,
                         onPressed: _createEvent,
                         isLoading: _isLoading,

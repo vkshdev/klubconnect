@@ -12,6 +12,7 @@ import '../../services/auth_service.dart';
 import '../../services/club_service.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/institution_utils.dart';
 import '../../utils/validators.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -124,6 +125,9 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
 
       final club = ClubModel(
         clubId: clubId,
+        institutionId: _faculty!.institutionId.isNotEmpty
+            ? _faculty!.institutionId
+            : InstitutionUtils.idFromCollegeName(_faculty!.collegeName),
         name: _nameController.text.trim(),
         slug: slug,
         description: _descriptionController.text.trim(),
@@ -150,6 +154,8 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
           clubId: clubId,
           image: _logoImage!,
           fileName: 'logo.jpg',
+          ownerId: _faculty!.uid,
+          institutionId: club.institutionId,
         );
       }
       if (_bannerImage != null) {
@@ -157,6 +163,8 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
           clubId: clubId,
           image: _bannerImage!,
           fileName: 'banner.jpg',
+          ownerId: _faculty!.uid,
+          institutionId: club.institutionId,
         );
       }
       if (imageUpdates.isNotEmpty) {
@@ -196,7 +204,8 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                       controller: _nameController,
                       label: 'Club Name',
                       hint: 'Robotics Society',
-                      validator: (value) => Validators.validateRequired(value, 'Club name'),
+                      validator: (value) =>
+                          Validators.validateRequired(value, 'Club name'),
                     ),
                     const SizedBox(height: 16),
                     CustomTextField(
@@ -204,7 +213,8 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                       label: 'Description',
                       hint: 'What does this club do?',
                       maxLines: 4,
-                      validator: (value) => Validators.validateRequired(value, 'Description'),
+                      validator: (value) =>
+                          Validators.validateRequired(value, 'Description'),
                     ),
                     const SizedBox(height: 16),
                     CustomDropdown(
@@ -212,7 +222,8 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                       value: _category,
                       items: _categories,
                       hint: 'Select category',
-                      validator: (value) => Validators.validateRequired(value, 'Category'),
+                      validator: (value) =>
+                          Validators.validateRequired(value, 'Category'),
                       onChanged: (value) => setState(() => _category = value),
                     ),
                     const SizedBox(height: 16),
@@ -226,7 +237,9 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                   children: [
                     _ImagePickerTile(
                       title: 'Club Logo',
-                      subtitle: _logoImage == null ? 'Optional square image' : 'Logo selected',
+                      subtitle: _logoImage == null
+                          ? 'Optional square image'
+                          : 'Logo selected',
                       image: _logoImage,
                       icon: Icons.badge_outlined,
                       onTap: () => _pickImage(isLogo: true),
@@ -234,7 +247,9 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                     const Divider(),
                     _ImagePickerTile(
                       title: 'Club Banner',
-                      subtitle: _bannerImage == null ? 'Optional wide header image' : 'Banner selected',
+                      subtitle: _bannerImage == null
+                          ? 'Optional wide header image'
+                          : 'Banner selected',
                       image: _bannerImage,
                       icon: Icons.image_outlined,
                       onTap: () => _pickImage(isLogo: false),
@@ -245,11 +260,14 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
               const SizedBox(height: 16),
               GlassCard(
                 child: StreamBuilder<List<UserModel>>(
-                  stream: _clubService.streamCollegeStudents(_faculty!.collegeName),
+                  stream: _clubService.streamCollegeStudents(
+                    _faculty!.collegeName,
+                    institutionId: _faculty!.institutionId,
+                  ),
                   builder: (context, snapshot) {
                     final students = snapshot.data ?? [];
                     return DropdownButtonFormField<String>(
-                      value: _presidentId,
+                      initialValue: _presidentId,
                       decoration: const InputDecoration(
                         labelText: 'President',
                         hintText: 'Select a student president',
@@ -262,7 +280,8 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                             ),
                           )
                           .toList(),
-                      validator: (value) => Validators.validateRequired(value, 'President'),
+                      validator: (value) =>
+                          Validators.validateRequired(value, 'President'),
                       onChanged: (value) {
                         UserModel? selected;
                         for (final student in students) {
@@ -345,7 +364,7 @@ class _ImagePickerTile extends StatelessWidget {
         child: Container(
           width: 54,
           height: 54,
-          color: Colors.white.withOpacity(0.6),
+          color: Colors.white.withValues(alpha: 0.6),
           child: image == null
               ? Icon(icon, color: Theme.of(context).primaryColor)
               : Image.file(image!, fit: BoxFit.cover),
