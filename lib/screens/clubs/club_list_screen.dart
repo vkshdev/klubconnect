@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/club_model.dart';
@@ -5,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../services/club_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/cached_remote_image.dart';
 import '../../widgets/glass_card.dart';
 import 'club_details_screen.dart';
 import 'create_club_screen.dart';
@@ -30,14 +32,17 @@ class _ClubListScreenState extends State<ClubListScreen> {
     final authService = Provider.of<AuthService>(context, listen: false);
     final firestoreService = FirestoreService();
     if (authService.currentUser != null) {
-      final user = await firestoreService.getUserById(authService.currentUser!.uid);
+      final user =
+          await firestoreService.getUserById(authService.currentUser!.uid);
       if (mounted) setState(() => _currentUser = user);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUser == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_currentUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -48,13 +53,17 @@ class _ClubListScreenState extends State<ClubListScreen> {
               icon: const Icon(Icons.add),
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const CreateClubScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const CreateClubScreen()),
               ),
             ),
         ],
       ),
       body: StreamBuilder<List<ClubModel>>(
-        stream: _clubService.getClubsByCollege(_currentUser!.collegeName),
+        stream: _clubService.getClubsByCollege(
+          _currentUser!.collegeName,
+          institutionId: _currentUser!.institutionId,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -75,7 +84,8 @@ class _ClubListScreenState extends State<ClubListScreen> {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ClubDetailsScreen(clubId: club.clubId),
+                      builder: (context) =>
+                          ClubDetailsScreen(clubId: club.clubId),
                     ),
                   ),
                   child: GlassCard(
@@ -84,13 +94,12 @@ class _ClubListScreenState extends State<ClubListScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (club.bannerUrl.isNotEmpty)
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                            child: Image.network(
-                              club.bannerUrl,
-                              height: 120,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
+                          CachedRemoteImage(
+                            imageUrl: club.bannerUrl,
+                            height: 120,
+                            width: double.infinity,
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(20),
                             ),
                           ),
                         Padding(
@@ -100,7 +109,7 @@ class _ClubListScreenState extends State<ClubListScreen> {
                               CircleAvatar(
                                 radius: 30,
                                 backgroundImage: club.logoUrl.isNotEmpty
-                                    ? NetworkImage(club.logoUrl)
+                                    ? CachedNetworkImageProvider(club.logoUrl)
                                     : null,
                                 child: club.logoUrl.isEmpty
                                     ? Text(club.name[0])
@@ -120,7 +129,8 @@ class _ClubListScreenState extends State<ClubListScreen> {
                                     ),
                                     Text(
                                       club.category,
-                                      style: TextStyle(color: Colors.grey.shade600),
+                                      style: TextStyle(
+                                          color: Colors.grey.shade600),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -133,7 +143,8 @@ class _ClubListScreenState extends State<ClubListScreen> {
                                   ],
                                 ),
                               ),
-                              Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                              Icon(Icons.chevron_right,
+                                  color: Colors.grey.shade400),
                             ],
                           ),
                         ),

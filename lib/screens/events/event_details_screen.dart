@@ -7,6 +7,7 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/event_service.dart';
 import '../../services/firestore_service.dart';
+import '../../widgets/cached_remote_image.dart';
 import '../../widgets/glass_card.dart';
 
 class EventDetailsScreen extends StatefulWidget {
@@ -42,7 +43,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       stream: _eventService.streamEvent(widget.eventId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
         }
         final event = snapshot.data;
         if (event == null) {
@@ -57,39 +59,44 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               padding: const EdgeInsets.all(20),
               children: [
                 if ((event.bannerUrl ?? '').isNotEmpty)
-                  ClipRRect(
+                  CachedRemoteImage(
+                    imageUrl: event.bannerUrl!,
+                    height: 210,
+                    width: double.infinity,
                     borderRadius: BorderRadius.circular(18),
-                    child: Image.network(
-                      event.bannerUrl!,
-                      height: 210,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
                   ),
                 const SizedBox(height: 18),
                 GlassCard(
                   child: Column(
                     children: [
-                      _buildInfoRow(Icons.apartment_outlined, 'Club', event.clubName),
+                      _buildInfoRow(
+                          Icons.apartment_outlined, 'Club', event.clubName),
                       const Divider(),
-                      _buildInfoRow(Icons.calendar_today, 'Date', '${event.eventDate.day}/${event.eventDate.month}/${event.eventDate.year}'),
+                      _buildInfoRow(Icons.calendar_today, 'Date',
+                          '${event.eventDate.day}/${event.eventDate.month}/${event.eventDate.year}'),
                       const Divider(),
                       _buildInfoRow(Icons.access_time, 'Time', event.eventTime),
                       const Divider(),
                       _buildInfoRow(
-                        event.venueType == 'online' ? Icons.link : Icons.location_on_outlined,
+                        event.venueType == 'online'
+                            ? Icons.link
+                            : Icons.location_on_outlined,
                         event.venueType == 'online' ? 'Link' : 'Location',
                         event.location,
                       ),
                       const Divider(),
-                      _buildInfoRow(Icons.groups_outlined, 'Attending', '${event.currentParticipants} / ${event.maxParticipants}'),
+                      _buildInfoRow(Icons.groups_outlined, 'Attending',
+                          '${event.currentParticipants} / ${event.maxParticipants}'),
                     ],
                   ),
                 ),
                 const SizedBox(height: 22),
                 Text(
                   'About Event',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text(event.description),
@@ -141,7 +148,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Your RSVP', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Your RSVP',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 14),
               Row(
                 children: [
@@ -192,23 +200,28 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     return StreamBuilder<List<EventRSVP>>(
       stream: _eventService.getEventRsvps(eventId),
       builder: (context, snapshot) {
-        final rsvps = (snapshot.data ?? []).where((rsvp) => rsvp.response == 'attending').toList();
+        final rsvps = (snapshot.data ?? [])
+            .where((rsvp) => rsvp.response == 'attending')
+            .toList();
         return GlassCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Participants', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Participants',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               if (snapshot.connectionState == ConnectionState.waiting)
                 const Center(child: CircularProgressIndicator())
               else if (rsvps.isEmpty)
-                Text('No confirmed participants yet.', style: TextStyle(color: Colors.grey.shade700))
+                Text('No confirmed participants yet.',
+                    style: TextStyle(color: Colors.grey.shade700))
               else
                 ...rsvps.take(20).map(
                       (rsvp) => ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                        leading: const CircleAvatar(
+                            child: Icon(Icons.person_outline)),
                         title: Text(rsvp.userName),
                       ),
                     ),
@@ -219,7 +232,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     );
   }
 
-  Future<void> _handleRSVP(EventModel event, String response, String? previousResponse) async {
+  Future<void> _handleRSVP(
+      EventModel event, String response, String? previousResponse) async {
     if (_currentUser == null) return;
 
     try {
@@ -260,9 +274,9 @@ class _RSVPButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withOpacity(0.1),
+          color: isSelected ? color : color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.55)),
+          border: Border.all(color: color.withValues(alpha: 0.55)),
         ),
         child: Column(
           children: [
