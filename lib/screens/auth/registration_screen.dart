@@ -6,6 +6,7 @@ import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/glass_card.dart';
 import '../../utils/constants.dart';
+import '../../utils/institution_utils.dart';
 import '../../utils/theme.dart';
 import '../../utils/validators.dart';
 import 'profile_setup_screen.dart';
@@ -77,7 +78,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return isStudent ? 'Create Student Account' : 'Create Faculty Account';
   }
 
-  String get _roleTitle => isStudent ? 'Student onboarding' : 'Faculty onboarding';
+  String get _roleTitle =>
+      isStudent ? 'Student onboarding' : 'Faculty onboarding';
   String get _roleSubtitle => isStudent
       ? 'Create your college profile, join clubs, and discover events from your college.'
       : 'Create your mentor profile, manage clubs, and guide student-led activities.';
@@ -206,10 +208,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       'phone_number': '+91${_phoneController.text.trim()}',
       'first_name': _firstNameController.text.trim(),
       'last_name': _lastNameController.text.trim(),
-      'full_name': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
+      'full_name':
+          '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
       'user_type': widget.userType,
       'gender': _selectedGender,
       'date_of_birth': _selectedDOB,
+      'institution_id': InstitutionUtils.idFromCollegeName(
+          _collegeNameController.text.trim()),
       'college_name': _collegeNameController.text.trim(),
     };
 
@@ -268,7 +273,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       appBar: AppBar(
         title: Text(
           isStudent ? 'Student Registration' : 'Faculty Registration',
-          style: const TextStyle(color: AppTheme.darkTextColor, fontWeight: FontWeight.w900),
+          style: const TextStyle(
+              color: AppTheme.darkTextColor, fontWeight: FontWeight.w900),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -331,7 +337,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           height: 54,
           width: 54,
           decoration: BoxDecoration(
-            color: (isStudent ? AppTheme.accentColor : AppTheme.primaryColor).withOpacity(0.1),
+            color: (isStudent ? AppTheme.accentColor : AppTheme.primaryColor)
+                .withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Icon(
@@ -407,7 +414,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             child: LinearProgressIndicator(
               minHeight: 7,
               value: (_currentPage + 1) / total,
-              backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+              backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(
                 isStudent ? AppTheme.accentColor : AppTheme.primaryColor,
               ),
@@ -450,7 +457,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 onPressed: _nextPage,
                 isLoading: _isLoading,
                 height: 50,
-                icon: _isFinalPage ? Icons.verified_user_outlined : Icons.arrow_forward_rounded,
+                icon: _isFinalPage
+                    ? Icons.verified_user_outlined
+                    : Icons.arrow_forward_rounded,
                 backgroundColor: AppTheme.darkTextColor,
                 textColor: Colors.white,
               ),
@@ -544,7 +553,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -552,7 +561,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
+                      const Icon(Icons.calendar_today,
+                          color: AppTheme.primaryColor),
                       const SizedBox(width: 12),
                       Text(
                         _selectedDOB != null
@@ -566,7 +576,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       ),
                     ],
                   ),
-                  const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.lightTextColor),
+                  const Icon(Icons.arrow_forward_ios,
+                      size: 16, color: AppTheme.lightTextColor),
                 ],
               ),
             ),
@@ -602,7 +613,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
           ),
           const SizedBox(height: 24),
-
           if (isStudent) ...[
             CustomTextField(
               label: 'Enrollment Number',
@@ -623,7 +633,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
             CustomDropdown(
               label: 'Course',
               value: _selectedCourse,
@@ -634,14 +643,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   _selectedBranch = null; // Reset branch
                   // Auto calculate end year if start year is selected
                   if (_sessionStartYear != null && value != null) {
-                    _sessionEndYear = _calculateEndYear(_sessionStartYear!, value);
+                    _sessionEndYear =
+                        _calculateEndYear(_sessionStartYear!, value);
                   }
                 });
               },
               hint: 'Select course',
             ),
             const SizedBox(height: 16),
-
             if (_selectedCourse != null)
               CustomDropdown(
                 label: 'Branch/Specialization',
@@ -653,13 +662,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 hint: 'Select branch',
               ),
             if (_selectedCourse != null) const SizedBox(height: 16),
-
             InkWell(
               onTap: () => _selectYear(context, true),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -667,7 +675,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
+                        const Icon(Icons.calendar_today,
+                            color: AppTheme.primaryColor),
                         const SizedBox(width: 12),
                         Text(
                           _sessionStartYear != null
@@ -681,18 +690,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         ),
                       ],
                     ),
-                    const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.lightTextColor),
+                    const Icon(Icons.arrow_forward_ios,
+                        size: 16, color: AppTheme.lightTextColor),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
-
             if (_sessionEndYear != null)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.08),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -722,7 +731,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               hint: 'Select designation',
             ),
             const SizedBox(height: 16),
-
             CustomDropdown(
               label: 'Department',
               value: _selectedDepartment,
@@ -733,13 +741,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               hint: 'Select department',
             ),
             const SizedBox(height: 16),
-
             InkWell(
               onTap: () => _selectYear(context, false),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -747,7 +754,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
+                        const Icon(Icons.calendar_today,
+                            color: AppTheme.primaryColor),
                         const SizedBox(width: 12),
                         Text(
                           _collegeJoinedYear != null
@@ -761,19 +769,20 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         ),
                       ],
                     ),
-                    const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.lightTextColor),
+                    const Icon(Icons.arrow_forward_ios,
+                        size: 16, color: AppTheme.lightTextColor),
                   ],
                 ),
               ),
             ),
           ],
           const SizedBox(height: 16),
-
           CustomTextField(
             label: 'College Name',
             hint: 'Enter college name',
             controller: _collegeNameController,
-            validator: (value) => Validators.validateRequired(value, 'College name'),
+            validator: (value) =>
+                Validators.validateRequired(value, 'College name'),
             prefixIcon: Icons.school,
           ),
         ],
@@ -795,7 +804,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
           ),
           const SizedBox(height: 24),
-
           CustomTextField(
             label: 'Residential Address',
             hint: 'Enter your complete address',
@@ -841,7 +849,7 @@ class _RegistrationBackground extends StatelessWidget {
             top: -85,
             right: -75,
             child: _SoftOrb(
-              color: AppTheme.primaryColor.withOpacity(0.15),
+              color: AppTheme.primaryColor.withValues(alpha: 0.15),
               size: 220,
             ),
           ),
@@ -849,7 +857,7 @@ class _RegistrationBackground extends StatelessWidget {
             bottom: 120,
             left: -115,
             child: _SoftOrb(
-              color: AppTheme.accentColor.withOpacity(0.12),
+              color: AppTheme.accentColor.withValues(alpha: 0.12),
               size: 230,
             ),
           ),

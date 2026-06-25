@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +7,8 @@ import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/image_upload_service.dart';
+import '../../utils/institution_utils.dart';
 import '../../utils/theme.dart';
 import '../../utils/validators.dart';
 import '../../widgets/custom_button.dart';
@@ -26,6 +27,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _aboutController = TextEditingController();
   final _firestoreService = FirestoreService();
+  final _imageUploadService = ImageUploadService();
 
   File? _imageFile;
   bool _isLoading = false;
@@ -112,14 +114,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     if (_imageFile == null) return null;
 
     try {
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('profiles')
-          .child(uid)
-          .child('profile.jpg');
+      final user = await _firestoreService.getUserById(uid);
+      final institutionId = user?.institutionId.isNotEmpty == true
+          ? user!.institutionId
+          : InstitutionUtils.idFromCollegeName(user?.collegeName ?? '');
 
-      await ref.putFile(_imageFile!);
-      return ref.getDownloadURL();
+      return _imageUploadService.uploadCompressedImage(
+        image: _imageFile!,
+        storagePath: 'profiles/$uid/profile.jpg',
+        ownerId: uid,
+        institutionId: institutionId,
+        ownerType: 'profile',
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
     } catch (e) {
       Fluttertoast.showToast(msg: 'Failed to upload image: $e');
       return null;
@@ -234,7 +242,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                 const SizedBox(height: 16),
                                 CustomTextField(
                                   label: 'Profile Bio',
-                                  hint: 'Write about your interests, skills, or what you would like others to know...',
+                                  hint:
+                                      'Write about your interests, skills, or what you would like others to know...',
                                   controller: _aboutController,
                                   maxLines: 6,
                                   maxLength: 500,
@@ -259,7 +268,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             padding: const EdgeInsets.all(16),
                             child: const Row(
                               children: [
-                                Icon(Icons.info_outline_rounded, color: AppTheme.primaryColor),
+                                Icon(Icons.info_outline_rounded,
+                                    color: AppTheme.primaryColor),
                                 SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
@@ -299,11 +309,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             height: 148,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.86),
-              border: Border.all(color: Colors.white.withOpacity(0.9), width: 4),
+              color: Colors.white.withValues(alpha: 0.86),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.9), width: 4),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryColor.withOpacity(0.12),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.12),
                   blurRadius: 34,
                   offset: const Offset(0, 18),
                 ),
@@ -382,7 +393,7 @@ class _ImageSourceTile extends StatelessWidget {
         height: 42,
         width: 42,
         decoration: BoxDecoration(
-          color: AppTheme.primaryColor.withOpacity(0.1),
+          color: AppTheme.primaryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Icon(icon, color: AppTheme.primaryColor),
@@ -421,12 +432,15 @@ class _ProfileSetupBackground extends StatelessWidget {
           Positioned(
             top: -85,
             right: -75,
-            child: _SoftOrb(color: AppTheme.primaryColor.withOpacity(0.15), size: 220),
+            child: _SoftOrb(
+                color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                size: 220),
           ),
           Positioned(
             bottom: 80,
             left: -115,
-            child: _SoftOrb(color: AppTheme.accentColor.withOpacity(0.12), size: 230),
+            child: _SoftOrb(
+                color: AppTheme.accentColor.withValues(alpha: 0.12), size: 230),
           ),
         ],
       ),

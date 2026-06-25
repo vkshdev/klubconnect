@@ -67,11 +67,15 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _sendMagicLink() async {
     setState(() => _isLoading = true);
     final authService = Provider.of<AuthService>(context, listen: false);
-    final result = await authService.sendMagicLink(_emailController.text.trim());
+    final result =
+        await authService.sendMagicLink(_emailController.text.trim());
     if (mounted) setState(() => _isLoading = false);
 
     Fluttertoast.showToast(
-      msg: result['message'] ?? (result['success'] == true ? 'Magic link sent' : 'Unable to send magic link'),
+      msg: result['message'] ??
+          (result['success'] == true
+              ? 'Magic link sent'
+              : 'Unable to send magic link'),
     );
   }
 
@@ -118,9 +122,9 @@ class _LoginScreenState extends State<LoginScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.72),
+            color: Colors.white.withValues(alpha: 0.72),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Colors.white.withOpacity(0.8)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
           ),
           child: const Text(
             'Secure college access',
@@ -189,7 +193,9 @@ class _LoginScreenState extends State<LoginScreen> {
               hint: 'Enter your password',
               controller: _passwordController,
               obscureText: true,
-              validator: (value) => (value == null || value.isEmpty) ? 'Password is required' : null,
+              validator: (value) => (value == null || value.isEmpty)
+                  ? 'Password is required'
+                  : null,
               prefixIcon: Icons.lock_outline_rounded,
             ),
           ],
@@ -199,7 +205,9 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: _login,
             isLoading: _isLoading,
             height: 54,
-            icon: _useMagicLink ? Icons.auto_awesome_rounded : Icons.login_rounded,
+            icon: _useMagicLink
+                ? Icons.auto_awesome_rounded
+                : Icons.login_rounded,
             backgroundColor: AppTheme.darkTextColor,
           ),
           const SizedBox(height: 14),
@@ -298,7 +306,7 @@ class _ModeButton extends StatelessWidget {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
                     blurRadius: 18,
                     offset: const Offset(0, 8),
                   ),
@@ -331,7 +339,7 @@ class _RoundIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(0.74),
+      color: Colors.white.withValues(alpha: 0.74),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -357,12 +365,12 @@ class _AuthLogo extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.82),
+        color: Colors.white.withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(size * 0.32),
-        border: Border.all(color: Colors.white.withOpacity(0.86)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.86)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.12),
+            color: AppTheme.primaryColor.withValues(alpha: 0.12),
             blurRadius: 28,
             offset: const Offset(0, 14),
           ),
@@ -396,12 +404,15 @@ class _AuthBackground extends StatelessWidget {
           Positioned(
             top: -70,
             right: -70,
-            child: _SoftOrb(color: AppTheme.primaryColor.withOpacity(0.16), size: 210),
+            child: _SoftOrb(
+                color: AppTheme.primaryColor.withValues(alpha: 0.16),
+                size: 210),
           ),
           Positioned(
             bottom: 70,
             left: -100,
-            child: _SoftOrb(color: AppTheme.accentColor.withOpacity(0.13), size: 210),
+            child: _SoftOrb(
+                color: AppTheme.accentColor.withValues(alpha: 0.13), size: 210),
           ),
         ],
       ),
