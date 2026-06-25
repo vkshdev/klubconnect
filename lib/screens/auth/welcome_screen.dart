@@ -27,18 +27,22 @@ class WelcomeScreen extends StatelessWidget {
                   const SizedBox(height: 34),
                   _RoleCard(
                     title: "I'm a Student",
-                    subtitle: 'Discover clubs, RSVP to events, and build your college circle.',
+                    subtitle:
+                        'Discover clubs, RSVP to events, and build your college circle.',
                     icon: Icons.school_rounded,
                     color: AppTheme.accentColor,
-                    onTap: () => _openRegistration(context, AppConstants.userTypeStudent),
+                    onTap: () => _openRegistration(
+                        context, AppConstants.userTypeStudent),
                   ),
                   const SizedBox(height: 14),
                   _RoleCard(
                     title: "I'm Faculty",
-                    subtitle: 'Create clubs, mentor student leaders, and approve event proposals.',
+                    subtitle:
+                        'Create clubs, mentor student leaders, and approve event proposals.',
                     icon: Icons.workspace_premium_rounded,
                     color: AppTheme.primaryColor,
-                    onTap: () => _openRegistration(context, AppConstants.userTypeFaculty),
+                    onTap: () => _openRegistration(
+                        context, AppConstants.userTypeFaculty),
                   ),
                   const SizedBox(height: 22),
                   _buildLoginPrompt(context),
@@ -62,9 +66,9 @@ class WelcomeScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.74),
+                color: Colors.white.withValues(alpha: 0.74),
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white.withOpacity(0.82)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.82)),
               ),
               child: const Text(
                 'College clubs, organized',
@@ -173,7 +177,7 @@ class _RoleCard extends StatelessWidget {
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(icon, size: 30, color: color),
@@ -214,32 +218,6 @@ class _RoleCard extends StatelessWidget {
   }
 }
 
-class _FeatureChip extends StatelessWidget {
-  final String label;
-
-  const _FeatureChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.74),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withOpacity(0.86)),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: AppTheme.secondaryColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
 class _WelcomeLogo extends StatelessWidget {
   const _WelcomeLogo();
 
@@ -249,12 +227,12 @@ class _WelcomeLogo extends StatelessWidget {
       width: 76,
       height: 76,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.82),
+        color: Colors.white.withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.86)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.86)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.12),
+            color: AppTheme.primaryColor.withValues(alpha: 0.12),
             blurRadius: 28,
             offset: const Offset(0, 14),
           ),
@@ -288,12 +266,15 @@ class _WelcomeBackground extends StatelessWidget {
           Positioned(
             top: -90,
             right: -70,
-            child: _SoftOrb(color: AppTheme.primaryColor.withOpacity(0.16), size: 220),
+            child: _SoftOrb(
+                color: AppTheme.primaryColor.withValues(alpha: 0.16),
+                size: 220),
           ),
           Positioned(
             bottom: 50,
             left: -105,
-            child: _SoftOrb(color: AppTheme.accentColor.withOpacity(0.13), size: 230),
+            child: _SoftOrb(
+                color: AppTheme.accentColor.withValues(alpha: 0.13), size: 230),
           ),
         ],
       ),
