@@ -67,16 +67,20 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
   }
 
   Future<void> _postAnnouncement() async {
-    if (_titleController.text.isEmpty || _contentController.text.isEmpty) return;
+    if (_titleController.text.isEmpty || _contentController.text.isEmpty) {
+      return;
+    }
 
     setState(() => _isPosting = true);
     final authService = Provider.of<AuthService>(context, listen: false);
     final firestoreService = FirestoreService();
-    final user = await firestoreService.getUserById(authService.currentUser!.uid);
+    final user =
+        await firestoreService.getUserById(authService.currentUser!.uid);
 
     if (user != null) {
       final announcement = AnnouncementModel(
         announcementId: '', // Service handles ID
+        institutionId: user.institutionId,
         clubId: widget.clubId,
         clubName: widget.clubName,
         title: _titleController.text.trim(),
@@ -94,6 +98,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
           if (memberId == user.uid) continue;
           await _notificationService.sendNotification(
             userId: memberId,
+            institutionId: user.institutionId,
             type: 'announcement',
             title: 'New announcement in ${widget.clubName}',
             message: _titleController.text.trim(),
@@ -163,7 +168,8 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
                             ),
                           ),
                           if (announcement.isPinned)
-                            const Icon(Icons.push_pin, size: 16, color: Colors.blue),
+                            const Icon(Icons.push_pin,
+                                size: 16, color: Colors.blue),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -181,7 +187,8 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
                             ),
                           ),
                           Text(
-                            DateFormat('MMM dd, yyyy').format(announcement.createdAt),
+                            DateFormat('MMM dd, yyyy')
+                                .format(announcement.createdAt),
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 12,
