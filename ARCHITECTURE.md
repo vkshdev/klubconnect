@@ -1,300 +1,192 @@
-# KlubConnect System Design and Architecture
+# KlubConnect — System Architecture
 
-This document provides a detailed overview of the KlubConnect application's system design and backend architecture.
+**Product:** KlubConnect College Community Platform  
+**Client:** Flutter (Android, iOS, Web)  
+**BaaS:** Firebase (Auth, Firestore, Storage, Cloud Messaging, App Check)  
+**Backend:** Go on Google Cloud Run  
+**Event Ingress:** GCP Eventarc (CloudEvents v1.0)  
+**Backend Details:** See [`BACKEND_DESIGN.md`](BACKEND_DESIGN.md)  
 
-## 1. Overview
-
-KlubConnect is a mobile-first social networking platform for college communities,
-built using Flutter for the cross-platform frontend and Firebase for the
-backend. It enables students and faculty to manage and participate in college
-clubs and events, fostering a connected campus environment. The system is
-designed to be real-time, scalable, and secure, with a clear separation of
-concerns between different parts of the application.
-
-## 2. Core Technologies
-### 2.1. Frontend Application (Flutter)
-
--   **Platform:** A single codebase for Android, iOS, and Web (with some
-    features being mobile-specific).
--   **UI:** A professional and clean user interface built with Flutter widgets.
--   **State Management:** Uses the Provider package to manage application state
-    in a reactive and efficient manner.
--   **Services:** A layer of service classes in the Flutter app that abstract
-    the backend communication. These services are the bridge between the UI and
-    Firebase.
-
-### 2.2. Backend (Firebase)
-
-The backend is powered by a suite of Firebase services:
--   **Firebase Authentication:** Handles all user sign-up, sign-in, and session
-    management. Supports various authentication methods.
--   **Cloud Firestore:** The primary database. A NoSQL, document-based
-    database that stores all the application data and provides real-time data
-    synchronization.
--   **Firebase Storage:** Used for storing binary files, primarily images like
-    user profile pictures, club logos, and event banners.
--   **Firebase Cloud Messaging (FCM):** Manages and sends push notifications to
-    users' devices.
--   **Firebase App Check:** Provides a layer of security to ensure that requests
-    to the backend are coming from legitimate instances of the app.
-
-## 3. Architecture Block Diagram
 ---
 
-The following diagram illustrates the high-level architecture of the KlubConnect system.
-```
-+------------------------------------------------------------------------------+
-|                             KlubConnect App                                  |
-|                                                                              |
-|  +-----------------------+       +----------------------------------------+  |
-|  |      UI Layer         |------>|             Service Layer              |  |
-|  | (Screens & Widgets)   |       |                                        |  |
-|  +-----------------------+       |  +----------------------------------+  |  |
-|                                  |  | AuthService                      |  |  |
-|                                  |  +----------------------------------+  |  |
-|                                  |  | FirestoreService                 |  |  |
-|                                  |  +----------------------------------+  |  |
-|                                  |  | ClubService                      |  |  |
-|                                  |  +----------------------------------+  |  |
-|                                  |  | EventService                     |  |  |
-|                                  |  +----------------------------------+  |  |
-|                                  |  | ... (other services)             |  |  |
-|                                  |  +----------------------------------+  |  |
-|                                  +----------------------------------------+  |
-+------------------------------------------|-----------------------------------+
-                                           |
-                                           | (HTTPS / WebSocket)
-                                           |
-+------------------------------------------|-----------------------------------+
-|                              Firebase Backend                              |
-|                                                                              |
-|  +---------------------------+   +---------------------------+              |
-|  | Firebase Authentication   |<->|       Cloud Firestore      |              |
-|  | (Handles User Login)      |   | (NoSQL Database)           |              |
-|  +---------------------------+   +---------------------------+              |
-|                                                                              |
-|  +---------------------------+                                              |
-|  | Firebase Storage          |<--+                                          |
-|  | (Image Hosting)           |   |                                          |
-|  +---------------------------+   |                                          |
-|                                   |                                          |
-|  +---------------------------+   |                                          |
-|  | Firebase Cloud Messaging  |<--+                                          |
-|  | (Push Notifications)      |                                              |
-|  +---------------------------+                                              |
-|                                                                              |
-+------------------------------------------------------------------------------+
-```
+## 1. Overview & System Design
 
-## 4. Services
+KlubConnect uses a **hybrid cloud architecture**:
+* **Flutter client** connects directly to **Firebase** for responsive user interactions, live data updates, and offline caching.
+* **Go microservice on Google Cloud Run** handles background processing, atomic database transactions, notification dispatches, and audit logging triggered through **GCP Eventarc**.
 
-The backend logic is encapsulated in a set of services, each with a specific responsibility.
+```mermaid
+flowchart TB
+    subgraph ClientTier["1. Flutter App (Mobile & Web)"]
+        UI["UI (Screens & Widgets)"]
+        STATE["State Management (Provider)"]
+        SVC["Service Layer (Auth, Clubs, Events)"]
+        CACHE[("Local Disk Cache")]
 
-```
-+--------------------------+
-|       Service Layer      |
-+--------------------------+
-|  AuthService             |-----> Firebase Authentication
-|  FirestoreService        |-----> Cloud Firestore
-|  ClubService             |-----> Cloud Firestore, Firebase Storage
-|  EventService            |-----> Cloud Firestore, Firebase Storage
-|  AnnouncementService     |-----> Cloud Firestore
-|  MembershipService       |-----> Cloud Firestore
-|  ImageUploadService      |-----> Firebase Storage, Cloud Firestore
-|  NotificationService     |-----> Firebase Cloud Messaging, Cloud Firestore
-|  AuditLogService         |-----> Cloud Firestore
-+--------------------------+
+        UI <--> STATE
+        STATE <--> SVC
+        SVC <--> CACHE
+    end
+
+    subgraph SecurityGateway["2. Security Layer"]
+        APPCHECK["Firebase App Check\n(Play Integrity / App Attest)"]
+        TLS["HTTPS / WSS"]
+    end
+
+    ClientTier --> SecurityGateway
+
+    subgraph BaaSTier["3. Firebase BaaS"]
+        AUTH["Firebase Auth\n(Student & Faculty)"]
+        RULES["Security Rules\n(Multi-Tenant RBAC)"]
+        FIRESTORE[("Cloud Firestore\n(Multi-Tenant DB)")]
+        STORAGE[("Firebase Storage\n(Images & Banners)")]
+        FCM["Firebase Cloud Messaging\n(Push Notifications)"]
+    end
+
+    SecurityGateway --> AUTH
+    AUTH --> RULES
+    RULES --> FIRESTORE
+    RULES --> STORAGE
+    SVC -->|Realtime SDK| FIRESTORE
+    SVC -->|Uploads| STORAGE
+
+    subgraph AsyncPipeline["4. Asynchronous Cloud Worker"]
+        EVENTARC["GCP Eventarc\n(Firestore Triggers -> CloudEvents)"]
+        CLOUDRUN["Go Cloud Run Worker\n(Scale-to-Zero Microservice)\n*See BACKEND_DESIGN.md*"]
+    end
+
+    FIRESTORE -->|Document Events| EVENTARC
+    EVENTARC -->|CloudEvent HTTP POST| CLOUDRUN
+    CLOUDRUN -->|Atomic Batches & Transactions| FIRESTORE
+    CLOUDRUN -->|Multicast Push| FCM
+    FCM -->|Push Notifications| ClientTier
 ```
 
-### 4.1. `AuthService`
+---
 
--   **Responsibilities:** Handles all user authentication tasks.
--   **Features:**
-    -   Email and password registration and login.
-    -   Magic link authentication.
-    -   Phone number OTP verification.
-    -   Password reset functionality.
-    -   User session management.
--   **Firebase Services Used:** Firebase Authentication.
+## 2. Technology Stack
 
-### 4.2. `FirestoreService`
+| Layer | Technology | Usage |
+|---|---|---|
+| **Mobile App** | Flutter (Dart 3.x) | Cross-platform UI for Android, iOS, and Web |
+| **State Management** | Provider | View models and stream subscriptions |
+| **Authentication** | Firebase Auth | Email/Password, Magic Links, and Phone OTP |
+| **Device Integrity** | Firebase App Check | Play Integrity (Android) and App Attest (iOS) |
+| **Database** | Cloud Firestore | Multi-tenant NoSQL document store |
+| **Media Storage** | Firebase Storage | Profile images and club/event banners |
+| **Push Notifications** | Firebase Cloud Messaging | Push notifications via HTTP v1 API |
+| **Event Routing** | GCP Eventarc | Delivers Firestore mutation events to the Go worker |
+| **Backend Worker** | Go 1.22 on Cloud Run | Server-side business logic and atomic transactions |
+| **Secrets** | GCP Secret Manager | Manages runtime API keys and credentials |
 
--   **Responsibilities:** Provides a generic interface for interacting with Cloud Firestore.
--   **Features:**
-    -   Creating, reading, updating, and deleting user documents.
-    -   Searching for users.
-    -   Updating user presence (online/offline status).
--   **Firebase Services Used:** Cloud Firestore.
+---
 
-### 4.3. `ClubService`
+## 3. Flutter App Architecture
 
--   **Responsibilities:** Manages all club-related operations.
--   **Features:**
-    -   Creating and updating clubs.
-    -   Fetching club information.
-    -   Searching for clubs.
-    -   Managing club members.
--   **Firebase Services Used:** Cloud Firestore, Firebase Storage (for club logos).
-
-### 4.4. `EventService`
-
--   **Responsibilities:** Manages all event-related operations.
--   **Features:**
-    -   Creating and updating events.
-    -   Fetching event details.
-    -   RSVPing to events.
-    -   Managing event status (pending, approved, rejected).
--   **Firebase Services Used:** Cloud Firestore, Firebase Storage (for event banners).
-
-### 4.5. `AnnouncementService`
-
--   **Responsibilities:** Manages announcements within clubs.
--   **Features:**
-    -   Posting, deleting, and pinning announcements.
-    -   Fetching announcements for a club.
-    -   Incrementing view counts.
--   **Firebase Services Used:** Cloud Firestore.
-
-### 4.6. `MembershipService`
-
--   **Responsibilities:** Manages club membership requests and roles.
--   **Features:**
-    -   Sending and responding to join requests.
-    -   Leaving a club.
-    -   Assigning and managing roles (organizer, president).
--   **Firebase Services Used:** Cloud Firestore.
-
-### 4.7. `ImageUploadService`
-
--   **Responsibilities:** Handles image uploads and compression.
--   **Features:**
-    -   Compressing images before uploading to save storage and bandwidth.
-    -   Uploading images to Firebase Storage.
-    -   Recording asset metadata in Firestore.
--   **Firebase Services Used:** Firebase Storage, Cloud Firestore.
-
-### 4.8. `NotificationService`
-
--   **Responsibilities:** Manages push notifications and in-app notifications.
--   **Features:**
-    -   Sending and receiving push notifications using FCM.
-    -   Displaying local notifications.
-    -   Managing notification tokens.
-    -   Storing and fetching in-app notifications.
--   **Firebase Services Used:** Firebase Cloud Messaging, Cloud Firestore.
-
-### 4.9. `AuditLogService`
-
--   **Responsibilities:** Records important user actions for auditing and security purposes.
--   **Features:**
-    -   Logs actions such as club creation, membership changes, and event status updates.
--   **Firebase Services Used:** Cloud Firestore.
-
-## 5. Workflows
-
-The overall workflow of the application can be summarized as follows:
+The mobile app is structured into clean, focused layers:
 
 ```
-+------------------------------------+
-|            User Interface          |
-|  (Flutter App - Screens/Widgets)   |
-+------------------------------------+
-              |
-              | 1. User Interaction
-              V
-+------------------------------------+
-|           Service Layer            |
-|  (AuthService, ClubService, etc.)  |
-+------------------------------------+
-              |
-              | 2. API Call / Data Request
-              V
-+------------------------------------+
-|          Firebase Backend          |
-| (Auth, Firestore, Storage, FCM)    |
-+------------------------------------+
-              |
-              | 3. Data Storage / Processing / Response
-              V
-+------------------------------------+
-|           Service Layer            |
-|  (AuthService, ClubService, etc.)  |
-+------------------------------------+
-              |
-              | 4. Data Transformation / Business Logic
-              V
-+------------------------------------+
-|            User Interface          |
-|  (Flutter App - State Update)      |
-+------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│                     Presentation Layer                      │
+│                Screens and Reusable Widgets                 │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ User Actions / Live Streams
+┌──────────────────────────────▼──────────────────────────────┐
+│                    State Management Layer                   │
+│                     Provider ViewModels                     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Service Calls
+┌──────────────────────────────▼──────────────────────────────┐
+│                        Service Layer                        │
+│         Business logic for Auth, Clubs, Events, etc.        │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Direct SDK Connection
+┌──────────────────────────────▼──────────────────────────────┐
+│                  Firebase SDK & Local Cache                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 5.1. User Registration and Login
+### Service Layer Overview
 
-1.  The user opens the app and navigates to the registration screen.
-2.  The UI calls the `AuthService` in the Flutter app.
-3.  `AuthService` communicates with **Firebase Authentication** to create a new
-    user account.
-4.  Upon successful creation, a new user document is created in the **Cloud
-    Firestore** database via the `FirestoreService`.
-5.  For logins, `AuthService` validates credentials against **Firebase
-    Authentication** and fetches the user's profile from **Cloud Firestore**.
+* **`AuthService`**: Handles login, registration, OTP verification, and session state.
+* **`FirestoreService`**: Manages user profiles, keyword search indexing, and online presence.
+* **`ClubService`**: Handles club creation, updates, and member management.
+* **`EventService`**: Manages event creation, RSVPs, and calendar listings.
+* **`MembershipService`**: Manages join requests and club memberships.
+* **`AnnouncementService`**: Handles club announcements and pin toggling.
+* **`NotificationService`**: Registers FCM device tokens and listens for in-app notifications.
+* **`ImageUploadService`**: Compresses and uploads images to Firebase Storage.
 
-### 5.2. Creating a New Club (by a Faculty Member)
+---
 
-1.  A faculty member fills in the club creation form in the app.
-2.  The UI calls the `ClubService`.
-3.  `ClubService` initiates a "batch write" in **Cloud Firestore** to perform
-    multiple operations atomically.
-4.  It creates a new document in the `clubs` collection.
-5.  It updates the faculty member's user document to link them to the newly
-    created club.
-6.  It assigns the selected student as the club's president.
-7.  The batch write is committed, ensuring all changes are saved together.
-8.  The `AuditLogService` records this action in an `audit_logs` collection for
-    traceability.
+## 4. Multi-Tenancy & Security
 
-### 5.3. Sending a Push Notification
+Each college community is isolated by an `institution_id` across three validation steps:
 
-1.  An action in the app triggers a notification (e.g., a new announcement is
-    posted).
-2.  The relevant service (e.g., `AnnouncementService`) calls the
-    `NotificationService`.
-3.  `NotificationService` saves a notification document to the **Cloud
-    Firestore** `notifications` collection.
-4.  For important, real-time alerts, a backend trigger (like a Firebase Function,
-    not explicitly shown in the code but a standard pattern) would read this new
-    document and use the **Firebase Cloud Messaging (FCM)** API to send a push
-    notification to the target user's device.
-5.  The user receives the notification on their device, even if the app is in the
-    background.
+1. **Client Queries**: The Flutter app scopes queries to the user's `institution_id`.
+2. **Firestore Security Rules**: Rules enforce `sameTenant()` checks on reads and writes.
+3. **Backend Assertions**: The Go worker verifies matching `institution_id` values across users, clubs, and requests before running transactions.
 
-## 6. Data Models (in Cloud Firestore)
+### User Roles
+* **Student**: Joins clubs, attends events, and views announcements.
+* **Organizer**: Student member permitted to organize and edit club events.
+* **President**: Student club head who manages details, members, and announcements.
+* **Faculty / Club Master**: Faculty mentor who creates clubs and approves events.
 
-Firestore is a NoSQL database, and the data is organized into collections of
-documents.
+---
 
--   **`users` collection:**
-    -   Each document represents a user (student or faculty).
-    -   Stores profile information, roles, and lists of clubs they are part of.
+## 5. Firestore Database Structure
 
--   **`clubs` collection:**
-    -   Each document represents a college club.
-    -   Contains club details, a list of members, and references to its
-        president and faculty mentor.
-    -   Has sub-collections for `memberships` and `announcements`.
+```
+Cloud Firestore
+├── users/{userId}                          # User profiles and academic info
+│   └── devices/{deviceId}                  # FCM device tokens
+│
+├── clubs/{clubId}                          # Club information and leadership
+│   ├── members/{userId}                    # Quick member lookup sub-collection
+│   ├── memberships/{userId}                # Membership history and status
+│   └── announcements/{announcementId}      # Club announcements
+│
+├── events/{eventId}                        # Events and participant counts
+│   └── rsvps/{userId}                      # User RSVP state (going, interested, not_going)
+│
+├── membership_requests/{requestId}         # Student join requests
+│
+├── notifications/{notificationId}          # Notification queue
+│
+├── audit_logs/{auditLogId}                 # Append-only audit trail (written by Go worker)
+│
+└── go_worker_state/{handler}_{eventId}     # Idempotency lock records (managed by Go worker)
+```
 
--   **`events` collection:**
-    -   Each document is an event created by a club.
-    -   Stores event details, date, time, location, and RSVP information.
-    -   Has a sub-collection for `rsvps`.
+### Write Permissions
 
--   **`membership_requests` collection:**
-    -   Stores requests from students to join a club.
+| Collection | Client Access | Worker Access | Rules Rule |
+|---|---|---|---|
+| `users` | Write own profile | Status updates | `request.auth.uid == userId` |
+| `clubs` | Faculty create / Manager edit | Member updates | `user_type == "faculty"` / `isClubManager()` |
+| `events` | Role holders create / edit | Counter sync | `isClubRoleHolder()` / `isClubMaster()` |
+| `events/{id}/rsvps` | Write own RSVP | Read-only | `request.auth.uid == userId` |
+| `membership_requests`| Student create / Manager update | Read-only | `sameCollegeAsClub()` |
+| `notifications` | Create notification | Update dispatch status | `sameTenant()` |
+| `audit_logs` | **No write access** | Write audit logs | `allow write: if false` |
+| `go_worker_state` | **No access** | Read / write locks | `allow read, write: if false` |
 
--   **`notifications` collection:**
-    -   A list of in-app notifications for each user.
+---
 
--   **`audit_logs` collection:**
-    -   Records significant actions performed by users, for administrative
-        oversight.
+## 6. Asynchronous Go Backend Integration
+
+When an event requires server-side validation or atomic updates across multiple collections, Firestore sends a **CloudEvent** to the Go worker via **GCP Eventarc**:
+
+```
+Firestore Change ──> GCP Eventarc ──(CloudEvent HTTP POST)──> Go Worker on Cloud Run
+```
+
+### Core Backend Tasks:
+1. **Membership Approvals**: Validates tenant IDs and runs an atomic 4-collection batch write (`memberships`, `user_memberships`, `clubs.members`, and `notifications`).
+2. **RSVP Counters**: Updates event participant counts inside a transaction to prevent race conditions during busy event launches.
+3. **Push Notifications**: Sends multicast push messages via FCM and automatically removes stale/invalid device tokens.
+4. **Audit Logs**: Records immutable audit entries on changes to clubs, events, and memberships.
+5. **Idempotency Guard**: Uses a two-phase lock in `go_worker_state` to prevent duplicate execution from Eventarc retries.
+
+> For handler code details, delta counter logic, and idempotency state machines, see [**`BACKEND_DESIGN.md`**](BACKEND_DESIGN.md).
