@@ -2,15 +2,65 @@
   <img src="assets/images/logo.png" width="90" alt="KlubConnect Logo">
 </p>
 
-<h1 align="center"> KlubConnect
-</h1>
+<h1 align="center">KlubConnect</h1>
 
 <p align="center">
-  <strong> "Connect Through Clubs - Your College, Your Community" </strong>
+  <strong>College clubs should not run on group chats and spreadsheets.</strong>
 </p>
 
+<p align="center">
+  <a href="#why-it-exists">Why It Exists</a> &nbsp;·&nbsp;
+  <a href="#what-it-does">What It Does</a> &nbsp;·&nbsp;
+  <a href="#who-it-is-for">Who It Is For</a> &nbsp;·&nbsp;
+  <a href="#tech-stack">Tech Stack</a> &nbsp;·&nbsp;
+  <a href="ARCHITECTURE.md">Architecture</a>
+</p>
 
-KlubConnect is a professional college club management and social networking platform built with Flutter and Firebase. It is designed to provide a seamless experience for students to engage in college life and for faculty to oversee and mentor college organizations.
+---
+
+## Why It Exists
+
+Every college has clubs. Most of them are disorganized.
+
+Event announcements get buried in WhatsApp threads. Membership requests are tracked in Excel sheets. Students miss events they would have attended because they never heard about them. Faculty mentors have no visibility into what their clubs are doing. Organizers send the same message to five different platforms and still reach half the audience.
+
+KlubConnect exists because the infrastructure for college community life has not kept pace with how students actually communicate and organize. It is a purpose-built platform that replaces ad-hoc coordination with structured, real-time tools — built specifically for the college context, not repurposed from corporate software.
+
+---
+
+## What It Does
+
+KlubConnect is a full-stack college club and event management platform. It handles the complete lifecycle of college community life — from the moment a faculty member creates a club to the moment a student receives a push notification that their membership has been approved.
+
+### For Students
+
+- Discover every club at their college, filtered by category and interest.
+- Submit membership requests and track approval status in real time.
+- RSVP to events with live participant counts that update instantly.
+- Receive push notifications for events, announcements, and membership decisions.
+- View a unified calendar of all approved college events — no hunting across platforms.
+
+### For Club Leaders
+
+- Propose events and route them through the faculty approval workflow.
+- Post and pin announcements to all club members.
+- Manage member roles — promote organizers, assign presidents — with full audit history.
+- Monitor real-time RSVP counts without spreadsheets.
+
+### For Faculty
+
+- Create and govern clubs with institutional authority.
+- Approve or reject event proposals before they go public.
+- Maintain full oversight of member activity through an audit log.
+- A single source of truth for every club they mentor.
+
+---
+
+## Who It Is For
+
+KlubConnect is designed for colleges where student life is active but disorganized — where clubs exist but the infrastructure does not, where events happen but communication breaks down, and where faculty want oversight without bureaucratic overhead.
+
+It is not a generic social network. It does not try to replicate what exists. It is scoped, purposeful, and built around the specific workflows that college communities actually need.
 
 ---
 
@@ -24,66 +74,53 @@ KlubConnect is a professional college club management and social networking plat
 
 ---
 
-## Key Features
-
-### **Unified Authentication & Onboarding**
-- **Multi-Role Support**: Distinct registration and dashboards for **Students** and **Faculty**.
-- **Secure Auth**: Robust Email/Password authentication via Firebase Auth.
-- **Streamlined Onboarding**: Direct profile setup post-registration with a simplified flow for Faculty.
-- **Profile Customization**: Personalize profiles with photos, bios, and academic details in a clean, professional settings hub.
-
-### **Club Management Ecosystem**
-- **Discover & Join**: Browse college-specific clubs with category filters (Technical, Cultural, Sports, etc.).
-- **Role-Based Governance**: Dedicated controls for **Club Masters** (Faculty), **Presidents**, and **Organizers**.
-- **Membership Workflow**: Transparent join request and approval system.
-- **Member Directory**: View and connect with fellow club members.
-
-### **Dynamic Event Management**
-- **Lifecycle Management**: From proposal (by Organizers/Presidents) to approval (by Club Masters).
-- **Interactive RSVP**: Real-time participant tracking with "Attending", "Interested", and "Not Going" options.
-- **Automated Calendars**: Centralized monthly/weekly views of all approved college events.
-- **Banner Support**: High-quality event banners hosted on Firebase Storage.
-
-### **Communication & Engagement**
-- **Announcements**: Pin and broadcast important club news and updates.
-- **Real-time Notifications**: Instant alerts for event approvals, membership updates, and club activities.
-- **Search**: Find clubs, events, and users across the college community.
-
-### **Professional User Experience**
-- **Modern UI**: A clean, high-utility design language with a focus on professional networking.
-- **Mature Palette**: Sophisticated Slate, White, and Blue color scheme.
-- **Responsive Layouts**: Optimized for a smooth experience on both Android and Windows.
-- **Real-time Sync**: Live updates across the app using Firestore Snapshots.
-
----
-
 ## Tech Stack
 
-- **Frontend Framework**: [Flutter](https://flutter.dev) (Dart)
-- **Backend Services**: [Firebase](https://firebase.google.com)
-  - **Authentication**: Secure identity management.
-  - **Cloud Firestore**: Real-time NoSQL database for users, clubs, and events.
-  - **Cloud Storage**: Secure hosting for profile images and event banners.
-  - **Cloud Messaging (FCM)**: Reliable push notification delivery (Mobile).
-- **State Management**: [Provider](https://pub.dev/packages/provider)
-  - *Used for decoupled, reactive state updates across the app (Auth, UI states).*
-- **Architecture**: Service-Oriented (separated Services, Models, and UI layers).
-- **Design System**: Professional Corporate Aesthetic with Inter typography.
+KlubConnect is built on a hybrid architecture — a Flutter mobile app for real-time user interaction, Firebase BaaS for data and authentication, and a Go microservice on Google Cloud Run for server-critical, high-concurrency operations.
+
+| Layer | Technology |
+|---|---|
+| Mobile App | Flutter (Dart) — Android, iOS, Web |
+| State Management | Provider |
+| Database | Cloud Firestore — real-time, multi-tenant NoSQL |
+| File Storage | Firebase Storage |
+| Authentication | Firebase Auth — Email, Magic Link, OTP |
+| Device Security | Firebase App Check — Play Integrity / App Attest |
+| Push Notifications | Firebase Cloud Messaging |
+| Event Bus | GCP Eventarc — Firestore triggers to CloudEvent HTTP |
+| Backend Workers | Go 1.22 on Google Cloud Run — scale-to-zero |
+| Secret Management | GCP Secret Manager |
+
+The Go backend is not a wrapper around Firebase. It exists to solve specific production problems that a mobile client cannot safely or reliably handle on its own.
+
+- **Audit logs** written server-side so they cannot be forged by a modified client.
+- **FCM dispatch** handled asynchronously with stale token cleanup and multi-device fan-out.
+- **RSVP counters** aggregated through Firestore Transactions to survive concurrent write storms during large events.
+- **Membership approvals** committed as atomic batched writes across multiple collections so a client crash cannot leave data in a partial state.
+
+Every Go handler uses a CloudEvent ID idempotency guard backed by a `go_worker_state` Firestore collection, ensuring at-least-once Eventarc delivery does not produce duplicate side effects.
 
 ---
 
-## Backend Architecture
+## Security
 
-For a detailed explanation of the backend architecture, including the services, data models, and workflows, please refer to the [Architecture Document](ARCHITECTURE.md).
+Security is enforced at every layer, not just at the application level.
+
+- **Multi-tenant isolation**: Every Firestore read and write is scoped to the user's verified `institution_id`. A student at one college cannot access any data from another.
+- **Role-Based Access Control**: Club creation is restricted to faculty users at the Firestore rule level — not just the UI. Event approval is restricted to the club master. These rules are enforced server-side and cannot be bypassed.
+- **Immutable records**: Audit logs and idempotency state cannot be modified or deleted by any client credential. They are owned exclusively by the Go backend worker.
+- **Device attestation**: Firebase App Check with Play Integrity (Android) and App Attest (iOS) ensures only genuine app instances can talk to the backend.
 
 ---
 
-## Security & Privacy
-- **RBAC**: Strict Role-Based Access Control enforced at both the UI and Firestore Rule levels.
-- **Data Integrity**: Multi-step event approval workflows to ensure college-appropriate content.
-- **Privacy Controls**: Users control visibility of sensitive academic information.
+## Architecture
+
+For the full system architecture — see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+For Go backend handler specifications, trigger contracts, and the membership approval sequence diagram, see [BACKEND_DESIGN.md](BACKEND_DESIGN.md).
 
 ---
 
 ## License
+
 This project is licensed under the [MIT License](LICENSE).
