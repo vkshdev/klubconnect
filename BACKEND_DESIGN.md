@@ -172,19 +172,33 @@ sequenceDiagram
 
 **Problem:** Simultaneous RSVP bursts (e.g. event registration launches) create document write contention hotspots if clients attempt to mutate aggregate counters directly.
 
-#### Delta Vector State Machine
+#### Status Transition Delta Mapping
 
-The handler maps state transitions to linear vector deltas $( \Delta_{\text{going}}, \Delta_{\text{interested}}, \Delta_{\text{not\_going}} )$:
+The handler maps each RSVP status to its corresponding counter deltas:
 
-$$\vec{V}(\text{status}) = \begin{cases} (1, 0, 0) & \text{status} = \text{"going"} \\ (0, 1, 0) & \text{status} = \text{"interested"} \\ (0, 0, 1) & \text{status} = \text{"not\_going"} \\ (0, 0, 0) & \text{otherwise} \end{cases}$$
+| Status | Going | Interested | Not Going |
+|---|---|---|---|
+| `"going"` | +1 | 0 | 0 |
+| `"interested"` | 0 | +1 | 0 |
+| `"not_going"` | 0 | 0 | +1 |
+| *Other / None* | 0 | 0 | 0 |
 
-$$\vec{\Delta} = \vec{V}(\text{status}_{\text{new}}) - \vec{V}(\text{status}_{\text{old}})$$
+**Net Delta Calculation:**
+```text
+delta_going       = new_going - old_going
+delta_interested  = new_interested - old_interested
+delta_not_going   = new_not_going - old_not_going
+```
 
 #### Transactional Execution:
-1. Read current counters from `events/{eventId}` inside a Firestore transaction.
-2. Apply delta vector:
-   $$\text{counter}_{\text{new}} = \max(0, \text{counter}_{\text{current}} + \Delta)$$
-3. Commit updated counters and `updated_at` timestamp atomically. If net delta is zero, database write is skipped.
+1. Read current counters (`current_participants`, `interested_count`, `not_going_count`) from `events/{eventId}` inside a Firestore transaction.
+2. Apply delta adjustments with lower bound at zero:
+   ```text
+   new_participants = max(0, current_participants + delta_going)
+   new_interested   = max(0, interested_count + delta_interested)
+   new_not_going    = max(0, not_going_count + delta_not_going)
+   ```
+3. Commit updated counters and `updated_at` timestamp atomically. If net delta across all counters is zero, the write is skipped.
 
 ---
 
