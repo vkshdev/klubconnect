@@ -17,7 +17,7 @@ KlubConnect uses a **hybrid cloud architecture**:
 
 ```mermaid
 flowchart TB
-    subgraph ClientTier["Flutter Client (Mobile & Web)"]
+    subgraph ClientTier["1. Flutter Client (Mobile & Web)"]
         UI["UI (Screens & Widgets)"]
         STATE["State Management (Provider)"]
         SVC["Service Layer (Auth, Clubs, Events)"]
@@ -28,14 +28,14 @@ flowchart TB
         SVC <--> CACHE
     end
 
-    subgraph SecurityGateway["Security & Transport"]
+    subgraph SecurityGateway["2. Security & Transport"]
         APPCHECK["Firebase App Check\n(Play Integrity / App Attest)"]
         TLS["HTTPS / WSS"]
     end
 
     ClientTier --> SecurityGateway
 
-    subgraph BaaSTier["Firebase BaaS"]
+    subgraph BaaSTier["3. Firebase BaaS"]
         AUTH["Firebase Auth\n(Student & Faculty)"]
         RULES["Security Rules\n(Multi-Tenant RBAC)"]
         FIRESTORE[("Cloud Firestore\n(Multi-Tenant DB)")]
@@ -50,7 +50,7 @@ flowchart TB
     SVC -->|Realtime SDK| FIRESTORE
     SVC -->|Uploads| STORAGE
 
-    subgraph AsyncPipeline["Go Cloud Worker (Cloud Run)"]
+    subgraph AsyncPipeline["4. Go Cloud Worker (Cloud Run)"]
         EVENTARC["GCP Eventarc\n(Firestore Triggers -> CloudEvents)"]
         CLOUDRUN["Go Worker Service\n(Scale-to-Zero Microservice)\n*See BACKEND_DESIGN.md*"]
     end
