@@ -112,3 +112,33 @@ lib/firebase_options.dart
 .metadata
 .tool/
 *.icloud
+
+# Go / Golang related
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries and coverage outputs
+*.test
+*.out
+*.prof
+*.pprof
+coverage.txt
+coverage.out
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Go build outputs and temporary directories
+bin/
+dist/
+/backend/bin/
+/backend/dist/
+/backend/tmp/
+*.o
+*.a
+*.dSYM/
