@@ -114,8 +114,6 @@ func TestConfig_SecretManagerFallback(t *testing.T) {
 	t.Setenv("USE_SECRET_MANAGER", "true")
 	t.Setenv("FCM_SERVER_KEY", "fallback-key-secret")
 
-	// Secret Manager API will fail because no valid GCP credentials exist in test runner,
-	// so it should fallback to local FCM_SERVER_KEY.
 	cfg, err := config.Load(context.Background())
 	if err != nil {
 		t.Fatalf("expected fallback success, got error: %v", err)
@@ -139,7 +137,6 @@ func TestValidate_PortBoundariesAndWhitespace(t *testing.T) {
 		}
 	}
 
-	// Test whitespace-only GCPProjectID and FirestoreStateCol
 	cfg := &config.Config{
 		Port:              "8080",
 		GCPProjectID:      "   \t\n ",
