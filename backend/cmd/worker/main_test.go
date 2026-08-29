@@ -672,3 +672,52 @@ func TestE2E_HealthCheck(t *testing.T) {
 		}
 	})
 }
+
+func TestE2E_SecurityMiddleware(t *testing.T) {
+	server, _ := setupTestServer(t)
+	defer server.Close()
+
+	t.Run("Verifies OWASP Security Headers are injected", func(t *testing.T) {
+		resp, err := http.Get(server.URL + "/healthz")
+		if err != nil {
+			t.Fatalf("request failed: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.Header.Get("X-Content-Type-Options") != "nosniff" {
+			t.Errorf("expected X-Content-Type-Options: nosniff, got '%s'", resp.Header.Get("X-Content-Type-Options"))
+		}
+		if resp.Header.Get("X-Frame-Options") != "DENY" {
+			t.Errorf("expected X-Frame-Options: DENY, got '%s'", resp.Header.Get("X-Frame-Options"))
+		}
+		if resp.Header.Get("Strict-Transport-Security") == "" {
+			t.Error("expected Strict-Transport-Security header to be present")
+		}
+	})
+
+	t.Run("Auth middleware permits requests when secret matches", func(t *testing.T) {
+		secret := "super-secure-eventarc-secret"
+		authWrap := authMiddleware(secret)
+		handler := authWrap(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		// Request with matching X-CloudEvent-Secret
+		req1 := httptest.NewRequest(http.MethodPost, "/events/test", nil)
+		req1.Header.Set("X-CloudEvent-Secret", secret)
+		rec1 := httptest.NewRecorder()
+		handler.ServeHTTP(rec1, req1)
+		if rec1.Code != http.StatusOK {
+			t.Errorf("expected 200 OK with secret header, got %d", rec1.Code)
+		}
+
+		// Request without secret
+		req2 := httptest.NewRequest(http.MethodPost, "/events/test", nil)
+		rec2 := httptest.NewRecorder()
+		handler.ServeHTTP(rec2, req2)
+		if rec2.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401 Unauthorized without secret header, got %d", rec2.Code)
+		}
+	})
+}
+

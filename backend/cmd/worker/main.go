@@ -241,6 +241,50 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func bodyLimitMiddleware(maxBytes int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func authMiddleware(expectedSecret string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if expectedSecret == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			authHeader := r.Header.Get("Authorization")
+			eventarcSecret := r.Header.Get("X-CloudEvent-Secret")
+
+			if eventarcSecret == expectedSecret || authHeader == "Bearer "+expectedSecret {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": "Unauthorized: invalid or missing authentication token",
+			})
+		})
+	}
+}
+
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
@@ -267,18 +311,22 @@ func BuildRouter(
 ) http.Handler {
 	mux := http.NewServeMux()
 
+	webhookSecret := os.Getenv("EVENTARC_SECRET")
+	authWrap := authMiddleware(webhookSecret)
+
 	auditHandler := handlers.NewAuditHandler(guard, auditRepo)
 	fcmHandler := handlers.NewFCMHandler(guard, fcmClient, fcmRepo)
 	rsvpHandler := handlers.NewRSVPHandler(guard, rsvpRepo)
 	membershipHandler := handlers.NewMembershipHandler(guard, membershipRepo)
 
-	mux.Handle("/events/audit", auditHandler)
-	mux.Handle("/events/fcm", fcmHandler)
-	mux.Handle("/events/rsvp", rsvpHandler)
-	mux.Handle("/events/membership", membershipHandler)
+	mux.Handle("/events/audit", authWrap(auditHandler))
+	mux.Handle("/events/fcm", authWrap(fcmHandler))
+	mux.Handle("/events/rsvp", authWrap(rsvpHandler))
+	mux.Handle("/events/membership", authWrap(membershipHandler))
 	mux.HandleFunc("/healthz", healthzHandler)
 
-	return recoveryMiddleware(loggingMiddleware(mux))
+	limitWrap := bodyLimitMiddleware(2 << 20) // 2MB max payload limit
+	return recoveryMiddleware(loggingMiddleware(securityHeadersMiddleware(limitWrap(mux))))
 }
 
 func main() {
