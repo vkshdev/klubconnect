@@ -14,9 +14,9 @@ import '../../services/event_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/membership_service.dart';
 import '../../services/notification_service.dart';
+import '../../utils/theme.dart';
 import '../../widgets/cached_remote_image.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/screen_background.dart';
 import '../events/create_event_screen.dart';
 import '../events/event_details_screen.dart';
 import 'announcement_list_screen.dart';
@@ -63,6 +63,14 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
   bool _canManage(ClubModel club) => _isPresident(club) || _isClubMaster(club);
   bool _canCreateEvent(ClubModel club) =>
       _canManage(club) || _isOrganizer(club);
+
+  Color _safeColor(String value) {
+    try {
+      return Color(int.parse(value.replaceFirst('#', '0xFF')));
+    } catch (_) {
+      return AppTheme.primaryColor;
+    }
+  }
 
   Future<void> _sendJoinRequest(ClubModel club) async {
     if (_currentUser == null) return;
@@ -176,11 +184,16 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
         if (snapshot.connectionState == ConnectionState.waiting ||
             _currentUser == null) {
           return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+            body: Center(
+              child: CircularProgressIndicator(color: AppTheme.primaryColor),
+            ),
+          );
         }
         final club = snapshot.data;
         if (club == null) {
-          return const Scaffold(body: Center(child: Text('Club not found.')));
+          return const Scaffold(
+            body: Center(child: Text('Club not found.')),
+          );
         }
 
         final tabs = [
@@ -193,31 +206,58 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
         return DefaultTabController(
           length: tabs.length,
           child: Scaffold(
-            body: NestedScrollView(
-              headerSliverBuilder: (context, _) => [
-                SliverAppBar(
-                  expandedHeight: 260,
-                  pinned: true,
-                  title: Text(club.name),
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: _ClubHero(club: club),
-                  ),
-                  bottom: TabBar(
-                    tabs: tabs,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white70,
-                    indicatorColor: Colors.white,
+            backgroundColor: AppTheme.backgroundColor,
+            body: Stack(
+              children: [
+                const ScreenBackground(),
+                NestedScrollView(
+                  headerSliverBuilder: (context, _) => [
+                    SliverAppBar(
+                      expandedHeight: 250,
+                      pinned: true,
+                      backgroundColor: AppTheme.surfaceColor,
+                      elevation: 0,
+                      leading: Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: Center(
+                          child: IconGlassButton(
+                            icon: Icons.arrow_back_ios_new_rounded,
+                            onTap: () => Navigator.pop(context),
+                          ),
+                        ),
+                      ),
+                      flexibleSpace: FlexibleSpaceBar(
+                        background: _ClubHeroBanner(club: club),
+                      ),
+                      bottom: PreferredSize(
+                        preferredSize: const Size.fromHeight(48),
+                        child: Container(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          child: TabBar(
+                            tabs: tabs,
+                            labelColor: AppTheme.primaryColor,
+                            unselectedLabelColor: AppTheme.secondaryColor,
+                            indicatorColor: AppTheme.primaryColor,
+                            indicatorWeight: 3,
+                            labelStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  body: TabBarView(
+                    children: [
+                      _buildOverview(club),
+                      _buildEvents(club),
+                      _buildMembers(club),
+                      if (_canManage(club)) _buildRequests(club),
+                    ],
                   ),
                 ),
               ],
-              body: TabBarView(
-                children: [
-                  _buildOverview(club),
-                  _buildEvents(club),
-                  _buildMembers(club),
-                  if (_canManage(club)) _buildRequests(club),
-                ],
-              ),
             ),
           ),
         );
@@ -226,37 +266,128 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
   }
 
   Widget _buildOverview(ClubModel club) {
+    final color = _safeColor(club.colorCode);
+
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
       children: [
-        GlassCard(
+        GlassPanel(
+          padding: const EdgeInsets.all(18),
+          borderRadius: 22,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  _ClubLogo(club: club, size: 64),
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: color.withValues(alpha: 0.12),
+                    backgroundImage: club.logoUrl.isNotEmpty
+                        ? CachedNetworkImageProvider(club.logoUrl)
+                        : null,
+                    child: club.logoUrl.isEmpty && club.name.isNotEmpty
+                        ? Text(
+                            club.name[0].toUpperCase(),
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          )
+                        : null,
+                  ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(club.category,
-                            style: TextStyle(
-                                color: Theme.of(context).primaryColor)),
                         Text(
-                          '${club.totalMembers} members',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          club.name,
+                          style: const TextStyle(
+                            color: AppTheme.darkTextColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.4,
+                          ),
                         ),
-                        Text('Master: ${club.clubMasterName}'),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                club.category,
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${club.totalMembers} members',
+                              style: const TextStyle(
+                                color: AppTheme.secondaryColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
-              Text(club.description),
-              const SizedBox(height: 18),
+              const Divider(height: 24, color: Color(0xFFF1F5F9)),
+              const Text(
+                'About the Club',
+                style: TextStyle(
+                  color: AppTheme.darkTextColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                club.description,
+                style: const TextStyle(
+                  color: AppTheme.secondaryColor,
+                  fontSize: 13,
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.school_rounded,
+                    size: 16,
+                    color: AppTheme.lightTextColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Faculty Mentor: ${club.clubMasterName}',
+                      style: const TextStyle(
+                        color: AppTheme.secondaryColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               _buildMembershipAction(club),
             ],
           ),
@@ -265,9 +396,22 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
         Row(
           children: [
             Expanded(
-              child: CustomButton(
-                text: 'Announcements',
-                icon: Icons.campaign_outlined,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppTheme.darkTextColor,
+                  side: const BorderSide(color: AppTheme.borderColor),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: const Icon(Icons.campaign_rounded,
+                    color: AppTheme.primaryColor),
+                label: const Text(
+                  'Announcements',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                ),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -283,13 +427,25 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
             if (_canCreateEvent(club)) ...[
               const SizedBox(width: 12),
               Expanded(
-                child: CustomButton(
-                  text: 'Create Event',
-                  icon: Icons.add_circle_outline,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text(
+                    'Create Event',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                  ),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => CreateEventScreen(club: club)),
+                      builder: (context) => CreateEventScreen(club: club),
+                    ),
                   ),
                 ),
               ),
@@ -302,41 +458,92 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
 
   Widget _buildMembershipAction(ClubModel club) {
     if (_isClubMaster(club)) {
-      return const _StatusPill(
-          label: 'Club Master', icon: Icons.workspace_premium_outlined);
+      return _buildRoleBadge('FACULTY MENTOR', Icons.workspace_premium_rounded,
+          AppTheme.accentColor);
     }
     if (_isPresident(club)) {
-      return const _StatusPill(
-          label: 'President', icon: Icons.verified_outlined);
+      return _buildRoleBadge(
+          'PRESIDENT', Icons.verified_rounded, AppTheme.primaryColor);
     }
     if (_isOrganizer(club)) {
-      return const _StatusPill(
-          label: 'Organizer', icon: Icons.event_available_outlined);
+      return _buildRoleBadge('ORGANIZER', Icons.event_available_rounded,
+          const Color(0xFF8B5CF6));
     }
     if (_isMember(club)) {
-      return CustomButton(
-        text: 'Leave Club',
-        icon: Icons.logout,
-        gradient:
-            LinearGradient(colors: [Colors.red.shade400, Colors.red.shade700]),
+      return OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppTheme.errorColor,
+          side: BorderSide(color: AppTheme.errorColor.withValues(alpha: 0.5)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+        icon: const Icon(Icons.logout_rounded, size: 18),
+        label: const Text(
+          'Leave Club',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         onPressed: () => _leaveClub(club),
       );
     }
     return StreamBuilder<MembershipRequestModel?>(
       stream: _membershipService.streamUserRequest(
-          clubId: club.clubId, userId: _currentUser!.uid),
+        clubId: club.clubId,
+        userId: _currentUser!.uid,
+      ),
       builder: (context, snapshot) {
         final request = snapshot.data;
         if (request?.status == RequestStatus.pending) {
-          return const _StatusPill(
-              label: 'Request Pending', icon: Icons.hourglass_top_outlined);
+          return _buildRoleBadge(
+            'JOIN REQUEST PENDING',
+            Icons.hourglass_top_rounded,
+            AppTheme.warningColor,
+          );
         }
-        return CustomButton(
-          text: 'Request to Join',
-          icon: Icons.person_add_alt_1,
+        return FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppTheme.primaryColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          icon: const Icon(Icons.person_add_rounded, size: 18),
+          label: const Text(
+            'Request to Join',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
           onPressed: () => _sendJoinRequest(club),
         );
       },
+    );
+  }
+
+  Widget _buildRoleBadge(String label, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -345,73 +552,163 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
       stream: _eventService.getEventsByClub(club.clubId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(color: AppTheme.primaryColor),
+          );
         }
         final events = (snapshot.data ?? []).where((event) {
           return _canManage(club) ||
               _isOrganizer(club) ||
               event.status == EventStatus.approved;
         }).toList();
-        if (events.isEmpty) return const Center(child: Text('No events yet.'));
 
-        return RefreshIndicator(
-          onRefresh: () async => setState(() {}),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: events.length,
-            itemBuilder: (context, index) {
-              final event = events[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: GlassCard(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(event.title,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w800)),
-                        subtitle: Text(
-                            '${event.eventDate.day}/${event.eventDate.month}/${event.eventDate.year} at ${event.eventTime}'),
-                        trailing: _EventStatusChip(status: event.status),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  EventDetailsScreen(eventId: event.eventId)),
-                        ),
-                      ),
-                      if (_isClubMaster(club) &&
-                          event.status == EventStatus.pending) ...[
-                        const Divider(),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                icon: const Icon(Icons.close),
-                                label: const Text('Reject'),
-                                onPressed: () => _updateEventStatus(
-                                    event, EventStatus.rejected),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.check),
-                                label: const Text('Approve'),
-                                onPressed: () => _updateEventStatus(
-                                    event, EventStatus.approved),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
+        if (events.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    height: 52,
+                    width: 52,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.event_available_rounded,
+                      color: AppTheme.primaryColor,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No events scheduled yet',
+                    style: TextStyle(
+                      color: AppTheme.darkTextColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+          itemCount: events.length,
+          itemBuilder: (context, index) {
+            final event = events[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GlassPanel(
+                padding: const EdgeInsets.all(14),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        EventDetailsScreen(eventId: event.eventId),
                   ),
                 ),
-              );
-            },
-          ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          height: 42,
+                          width: 42,
+                          decoration: BoxDecoration(
+                            color:
+                                AppTheme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.calendar_month_rounded,
+                            color: AppTheme.primaryColor,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                event.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppTheme.darkTextColor,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${event.eventDate.day}/${event.eventDate.month}/${event.eventDate.year} at ${event.eventTime}',
+                                style: const TextStyle(
+                                  color: AppTheme.secondaryColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        _EventStatusBadge(status: event.status),
+                      ],
+                    ),
+                    if (_isClubMaster(club) &&
+                        event.status == EventStatus.pending) ...[
+                      const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              label: const Text('Reject'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.errorColor,
+                                side: const BorderSide(
+                                    color: AppTheme.errorColor),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () => _updateEventStatus(
+                                event,
+                                EventStatus.rejected,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              icon: const Icon(Icons.check_rounded, size: 16),
+                              label: const Text('Approve'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppTheme.successColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () => _updateEventStatus(
+                                event,
+                                EventStatus.approved,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -423,58 +720,18 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
       builder: (context, snapshot) {
         final memberships = snapshot.data ?? [];
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (memberships.isEmpty && club.members.isNotEmpty) {
-          return _buildLegacyMembers(club);
+          return const Center(
+            child: CircularProgressIndicator(color: AppTheme.primaryColor),
+          );
         }
         if (memberships.isEmpty) {
           return const Center(child: Text('No members yet.'));
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
           itemCount: memberships.length,
           itemBuilder: (context, index) {
             return _buildMembershipTile(club, memberships[index]);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildLegacyMembers(ClubModel club) {
-    return StreamBuilder<List<UserModel>>(
-      stream: _clubService.streamClubMembers(club.members),
-      builder: (context, snapshot) {
-        final members = snapshot.data ?? [];
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (members.isEmpty) {
-          return const Center(child: Text('No members yet.'));
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: members.length,
-          itemBuilder: (context, index) {
-            final member = members[index];
-            final role = club.presidentId == member.uid
-                ? ClubMembershipRole.president
-                : club.organizers.contains(member.uid)
-                    ? ClubMembershipRole.organizer
-                    : ClubMembershipRole.member;
-            final membership = ClubMembershipModel(
-              membershipId: member.uid,
-              clubId: club.clubId,
-              userId: member.uid,
-              userName: member.fullName,
-              userProfileImageUrl: member.profileImageUrl,
-              institutionId: club.institutionId,
-              role: role,
-              joinedAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            );
-            return _buildMembershipTile(club, membership);
           },
         );
       },
@@ -490,61 +747,101 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
         membership.userName.isEmpty ? 'Member' : membership.userName;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GlassCard(
-        child: ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: CircleAvatar(
-            backgroundImage: membership.userProfileImageUrl != null
-                ? CachedNetworkImageProvider(membership.userProfileImageUrl!)
-                : null,
-            child:
-                membership.userProfileImageUrl == null && displayName.isNotEmpty
-                    ? Text(displayName[0].toUpperCase())
-                    : null,
-          ),
-          title: Text(displayName,
-              style: const TextStyle(fontWeight: FontWeight.w700)),
-          subtitle: Text(isPresident
-              ? 'President'
-              : isOrganizer
-                  ? 'Organizer'
-                  : 'Member'),
-          trailing: _canManage(club) &&
-                  !isPresident &&
-                  membership.userId != _currentUser?.uid
-              ? PopupMenuButton<String>(
-                  onSelected: (value) async {
-                    if (value == 'organizer') {
-                      await _membershipService.setOrganizerRole(
-                        clubId: club.clubId,
-                        userId: membership.userId,
-                        actorUserId: _currentUser!.uid,
-                        isOrganizer: !isOrganizer,
-                      );
-                    } else if (value == 'president') {
-                      await _membershipService.assignPresident(
-                        clubId: club.clubId,
-                        oldPresidentId: club.presidentId,
-                        newPresidentId: membership.userId,
-                        newPresidentName: displayName,
-                        actorUserId: _currentUser!.uid,
-                      );
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'organizer',
-                      child: Text(
-                          isOrganizer ? 'Remove organizer' : 'Make organizer'),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GlassPanel(
+        padding: const EdgeInsets.all(12),
+        borderRadius: 18,
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+              backgroundImage: membership.userProfileImageUrl != null
+                  ? CachedNetworkImageProvider(membership.userProfileImageUrl!)
+                  : null,
+              child: membership.userProfileImageUrl == null &&
+                      displayName.isNotEmpty
+                  ? Text(
+                      displayName[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    displayName,
+                    style: const TextStyle(
+                      color: AppTheme.darkTextColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const PopupMenuItem(
-                      value: 'president',
-                      child: Text('Make president'),
+                  ),
+                  Text(
+                    isPresident
+                        ? 'President'
+                        : isOrganizer
+                            ? 'Organizer'
+                            : 'Member',
+                    style: TextStyle(
+                      color: isPresident
+                          ? AppTheme.primaryColor
+                          : isOrganizer
+                              ? const Color(0xFF8B5CF6)
+                              : AppTheme.secondaryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
-                )
-              : null,
+                  ),
+                ],
+              ),
+            ),
+            if (_canManage(club) &&
+                !isPresident &&
+                membership.userId != _currentUser?.uid)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded,
+                    color: AppTheme.lightTextColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                onSelected: (value) async {
+                  if (value == 'organizer') {
+                    await _membershipService.setOrganizerRole(
+                      clubId: club.clubId,
+                      userId: membership.userId,
+                      actorUserId: _currentUser!.uid,
+                      isOrganizer: !isOrganizer,
+                    );
+                  } else if (value == 'president') {
+                    await _membershipService.assignPresident(
+                      clubId: club.clubId,
+                      oldPresidentId: club.presidentId,
+                      newPresidentId: membership.userId,
+                      newPresidentName: displayName,
+                      actorUserId: _currentUser!.uid,
+                    );
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'organizer',
+                    child: Text(
+                        isOrganizer ? 'Remove organizer' : 'Make organizer'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'president',
+                    child: Text('Make president'),
+                  ),
+                ],
+              ),
+          ],
         ),
       ),
     );
@@ -556,47 +853,80 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
       builder: (context, snapshot) {
         final requests = snapshot.data ?? [];
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(color: AppTheme.primaryColor),
+          );
         }
         if (requests.isEmpty) {
           return const Center(child: Text('No pending requests.'));
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
           itemCount: requests.length,
           itemBuilder: (context, index) {
             final request = requests[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: GlassCard(
+              child: GlassPanel(
+                padding: const EdgeInsets.all(16),
+                borderRadius: 20,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(request.userName,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 16)),
+                    Text(
+                      request.userName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        color: AppTheme.darkTextColor,
+                      ),
+                    ),
                     if ((request.message ?? '').isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(request.message!),
+                      const SizedBox(height: 4),
+                      Text(
+                        request.message!,
+                        style: const TextStyle(
+                          color: AppTheme.secondaryColor,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            icon: const Icon(Icons.close),
+                            icon: const Icon(Icons.close_rounded, size: 16),
                             label: const Text('Reject'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.errorColor,
+                              side:
+                                  const BorderSide(color: AppTheme.errorColor),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                             onPressed: () => _respondToRequest(
-                                request, RequestStatus.rejected),
+                              request,
+                              RequestStatus.rejected,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.check),
+                          child: FilledButton.icon(
+                            icon: const Icon(Icons.check_rounded, size: 16),
                             label: const Text('Approve'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppTheme.successColor,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                             onPressed: () => _respondToRequest(
-                                request, RequestStatus.approved),
+                              request,
+                              RequestStatus.approved,
+                            ),
                           ),
                         ),
                       ],
@@ -612,10 +942,10 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
   }
 }
 
-class _ClubHero extends StatelessWidget {
+class _ClubHeroBanner extends StatelessWidget {
   final ClubModel club;
 
-  const _ClubHero({required this.club});
+  const _ClubHeroBanner({required this.club});
 
   @override
   Widget build(BuildContext context) {
@@ -631,31 +961,40 @@ class _ClubHero extends StatelessWidget {
               gradient: LinearGradient(
                 colors: [
                   color.withValues(alpha: 0.95),
-                  const Color(0xFF111827)
+                  const Color(0xFF0F172A)
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
           ),
-        Container(color: Colors.black.withValues(alpha: 0.28)),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.black.withValues(alpha: 0.45),
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.70),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
         Align(
           alignment: Alignment.bottomLeft,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 64),
-            child: Row(
-              children: [
-                _ClubLogo(club: club, size: 72),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    club.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ),
-              ],
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 60),
+            child: Text(
+              club.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.6,
+              ),
             ),
           ),
         ),
@@ -664,73 +1003,33 @@ class _ClubHero extends StatelessWidget {
   }
 }
 
-class _ClubLogo extends StatelessWidget {
-  final ClubModel club;
-  final double size;
-
-  const _ClubLogo({required this.club, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: size / 2,
-      backgroundImage: club.logoUrl.isNotEmpty
-          ? CachedNetworkImageProvider(club.logoUrl)
-          : null,
-      child: club.logoUrl.isEmpty && club.name.isNotEmpty
-          ? Text(club.name[0].toUpperCase())
-          : null,
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  final String label;
-  final IconData icon;
-
-  const _StatusPill({required this.label, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: Theme.of(context).primaryColor),
-          const SizedBox(width: 8),
-          Text(label,
-              style: TextStyle(
-                  color: Theme.of(context).primaryColor,
-                  fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
-}
-
-class _EventStatusChip extends StatelessWidget {
+class _EventStatusBadge extends StatelessWidget {
   final EventStatus status;
 
-  const _EventStatusChip({required this.status});
+  const _EventStatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (status) {
-      EventStatus.approved => Colors.green,
-      EventStatus.rejected => Colors.red,
-      EventStatus.draft => Colors.grey,
-      EventStatus.pending => Colors.orange,
+    final (color, label) = switch (status) {
+      EventStatus.approved => (AppTheme.successColor, 'Approved'),
+      EventStatus.rejected => (AppTheme.errorColor, 'Rejected'),
+      EventStatus.draft => (AppTheme.secondaryColor, 'Draft'),
+      EventStatus.pending => (AppTheme.warningColor, 'Pending'),
     };
-    return Chip(
-      label: Text(status.name),
-      labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-      backgroundColor: color,
-      visualDensity: VisualDensity.compact,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
