@@ -10,4 +10,7 @@ class InstitutionUtils {
 
     return normalized.isEmpty ? 'unknown-institution' : normalized;
   }
+
+  static String slugFromCollegeName(String collegeName) =>
+      idFromCollegeName(collegeName);
 }
