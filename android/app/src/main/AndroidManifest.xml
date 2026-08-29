@@ -18,18 +18,21 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+
             
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             
-            <!-- Add this for Magic Link/Deep Linking -->
+            <!-- Magic Link and App Links -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:host="klubconnect.page.link" android:scheme="https"/>
+                <data android:host="klubconnect.firebaseapp.com" android:pathPrefix="/__/auth/action" android:scheme="https"/>
+                <data android:host="klubconnect.app" android:scheme="https"/>
+                <data android:scheme="klubconnect"/>
             </intent-filter>
         </activity>
         

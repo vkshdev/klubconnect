@@ -20,7 +20,7 @@ val hasReleaseSigning = listOf("storeFile", "storePassword", "keyAlias", "keyPas
     rootProject.file(keystoreProperties.getProperty("storeFile") ?: "").exists()
 
 android {
-    namespace = "com.example.klubconnect"
+    namespace = "com.klubconnect.app"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -37,7 +37,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.klubconnect"
+        applicationId = "com.klubconnect.app"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutter.versionCode
