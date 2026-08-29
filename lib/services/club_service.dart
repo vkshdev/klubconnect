@@ -192,6 +192,17 @@ class ClubService {
             snapshot.docs.map(ClubMembershipModel.fromFirestore).toList());
   }
 
+  Stream<List<ClubMembershipModel>> streamUserClubMemberships(String userId) {
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(userId)
+        .collection('club_memberships')
+        .where('status', isEqualTo: ClubMembershipStatus.active.name)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map(ClubMembershipModel.fromFirestore).toList());
+  }
+
   Stream<List<ClubModel>> searchClubs({
     required String collegeName,
     String? institutionId,
