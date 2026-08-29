@@ -25,11 +25,11 @@ class AuthService extends ChangeNotifier {
     try {
       var acs = ActionCodeSettings(
         url:
-            'https://klubconnect.page.link/login', // Configure in Firebase Console
+            'https://klubconnect.firebaseapp.com/__/auth/action', // Standard Firebase Auth action handler URL
         handleCodeInApp: true,
-        androidPackageName: 'com.example.klubconnect',
+        androidPackageName: 'com.klubconnect.app',
         androidInstallApp: true,
-        androidMinimumVersion: '1',
+        androidMinimumVersion: '21',
       );
 
       await _auth.sendSignInLinkToEmail(
