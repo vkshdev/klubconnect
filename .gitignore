@@ -142,3 +142,9 @@ dist/
 *.o
 *.a
 *.dSYM/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
