@@ -11,6 +11,33 @@ class AuthService extends ChangeNotifier {
 
   String? _verificationId;
   int? _resendToken;
+  DateTime? _lastMagicLinkSentAt;
+  DateTime? _lastOtpSentAt;
+
+  static const Duration dispatchCooldown = Duration(seconds: 60);
+
+  bool canSendMagicLink() {
+    if (_lastMagicLinkSentAt == null) return true;
+    return DateTime.now().difference(_lastMagicLinkSentAt!) >= dispatchCooldown;
+  }
+
+  int get magicLinkCooldownRemainingSeconds {
+    if (_lastMagicLinkSentAt == null) return 0;
+    final diff =
+        dispatchCooldown - DateTime.now().difference(_lastMagicLinkSentAt!);
+    return diff.inSeconds > 0 ? diff.inSeconds : 0;
+  }
+
+  bool canSendPhoneOtp() {
+    if (_lastOtpSentAt == null) return true;
+    return DateTime.now().difference(_lastOtpSentAt!) >= dispatchCooldown;
+  }
+
+  int get phoneOtpCooldownRemainingSeconds {
+    if (_lastOtpSentAt == null) return 0;
+    final diff = dispatchCooldown - DateTime.now().difference(_lastOtpSentAt!);
+    return diff.inSeconds > 0 ? diff.inSeconds : 0;
+  }
 
   AuthService() {
     _auth.authStateChanges().listen((User? user) {
@@ -22,10 +49,18 @@ class AuthService extends ChangeNotifier {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   Future<Map<String, dynamic>> sendMagicLink(String email) async {
+    if (!canSendMagicLink()) {
+      final remaining = magicLinkCooldownRemainingSeconds;
+      return {
+        'success': false,
+        'message':
+            'Please wait $remaining seconds before requesting another login link.',
+      };
+    }
+
     try {
       var acs = ActionCodeSettings(
-        url:
-            'https://klubconnect.firebaseapp.com/__/auth/action', // Standard Firebase Auth action handler URL
+        url: 'https://klubconnect.firebaseapp.com/__/auth/action',
         handleCodeInApp: true,
         androidPackageName: 'com.klubconnect.app',
         androidInstallApp: true,
@@ -36,6 +71,8 @@ class AuthService extends ChangeNotifier {
         email: email,
         actionCodeSettings: acs,
       );
+
+      _lastMagicLinkSentAt = DateTime.now();
 
       return {
         'success': true,
@@ -157,7 +194,17 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> sendPhoneOTP(String phoneNumber) async {
+    if (!canSendPhoneOtp()) {
+      final remaining = phoneOtpCooldownRemainingSeconds;
+      return {
+        'success': false,
+        'message':
+            'Please wait $remaining seconds before requesting another SMS OTP code.',
+      };
+    }
+
     try {
+      _lastOtpSentAt = DateTime.now();
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
@@ -165,7 +212,7 @@ class AuthService extends ChangeNotifier {
           await _auth.signInWithCredential(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
-          if (kDebugMode) print('Phone verification failed: ${e.message}');
+          if (kDebugMode) debugPrint('Phone verification failed: ${e.message}');
         },
         codeSent: (String verificationId, int? resendToken) {
           _verificationId = verificationId;
@@ -212,7 +259,7 @@ class AuthService extends ChangeNotifier {
       }
       await _auth.signOut();
     } catch (e) {
-      if (kDebugMode) print('Sign out error: $e');
+      if (kDebugMode) debugPrint('Sign out error: $e');
     }
   }
 

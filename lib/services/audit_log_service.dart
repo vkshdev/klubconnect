@@ -4,7 +4,13 @@ import 'package:uuid/uuid.dart';
 import '../models/audit_log_model.dart';
 
 class AuditLogService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore? _customFirestore;
+
+  AuditLogService({FirebaseFirestore? firestore})
+      : _customFirestore = firestore;
+
+  FirebaseFirestore get _firestore =>
+      _customFirestore ?? FirebaseFirestore.instance;
 
   Future<void> record({
     required String institutionId,

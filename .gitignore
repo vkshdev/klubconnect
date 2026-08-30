@@ -1,9 +1,12 @@
 # Environment & Secrets
 .env
-.env*
 .env.*
 *.env
-*.env*
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
 *.secret
 secrets.yaml
 secrets.json
@@ -11,6 +14,8 @@ secret.json
 credentials.json
 gcp-credentials.json
 application_default_credentials.json
+!*.env.example
+!.env.example
 
 # Service Account Keys
 *serviceAccountKey*.json
@@ -19,9 +24,13 @@ application_default_credentials.json
 *client_secret*.json
 
 # Firebase Credentials & Config
+.firebaserc
 **/google-services.json
+android/app/google-services.json
 **/GoogleService-Info.plist
+ios/Runner/GoogleService-Info.plist
 *firebase_options*.dart
+lib/firebase_options.dart
 lib/firebase_options*.dart
 .firebase/
 firebase-debug.log*
