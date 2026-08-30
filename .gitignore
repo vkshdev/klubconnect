@@ -1,8 +1,9 @@
 # Environment & Secrets
 .env
+.env*
 .env.*
-!.env.example
 *.env
+*.env*
 *.secret
 secrets.yaml
 secrets.json
@@ -20,8 +21,8 @@ application_default_credentials.json
 # Firebase Credentials & Config
 **/google-services.json
 **/GoogleService-Info.plist
-lib/firebase_options.dart
-!lib/firebase_options.example.dart
+*firebase_options*.dart
+lib/firebase_options*.dart
 .firebase/
 firebase-debug.log*
 firestore-debug.log*
@@ -29,10 +30,10 @@ ui-debug.log*
 hub-debug.log*
 
 # Signing & Keystores
-**/android/key.properties
-!**/android/key.properties.example
-**/android/signing.properties
-**/android/local.properties
+*key.properties*
+**/key.properties*
+**/signing.properties*
+**/local.properties*
 local.properties
 key.properties
 signing.properties
