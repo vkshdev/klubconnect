@@ -95,15 +95,39 @@ service cloud.firestore {
       ]);
     }
 
+    match /institutions/{institutionId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn() && sameTenant(resource.data);
       allow create: if isSignedIn()
         && request.auth.uid == userId
         && request.resource.data.institution_id is string;
       allow update: if isSignedIn() && (
-        request.auth.uid == userId ||
         (
-          sameCollege(resource.data.college_name) &&
+          request.auth.uid == userId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'first_name',
+            'last_name',
+            'full_name',
+            'full_name_lower',
+            'search_keywords',
+            'about',
+            'phone_number',
+            'profile_image_url',
+            'fcm_token',
+            'last_token_updated_at',
+            'last_login_at',
+            'is_online',
+            'last_active_at',
+            'profile_completed',
+            'updated_at'
+          ])
+        ) ||
+        (
+          sameTenant(resource.data) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'clubs_joined',
             'clubs_created',
@@ -128,7 +152,10 @@ service cloud.firestore {
         && request.resource.data.institution_id is string
         && request.resource.data.institution_id == currentUser().institution_id
         && request.resource.data.college_name == currentUser().college_name;
-      allow update: if isClubManager(clubId) && sameTenant(resource.data);
+      allow update: if isClubManager(clubId)
+        && sameTenant(resource.data)
+        && request.resource.data.institution_id == resource.data.institution_id
+        && request.resource.data.club_master_id == resource.data.club_master_id;
       allow delete: if false;
 
       match /memberships/{userId} {
@@ -193,7 +220,9 @@ service cloud.firestore {
 
       match /rsvps/{userId} {
         allow read: if isSignedIn() && sameCollegeAsClub(get(/databases/$(database)/documents/events/$(eventId)).data.club_id);
-        allow write: if isSignedIn() && request.auth.uid == userId;
+        allow write: if isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.response in ['attending', 'interested', 'not_going'];
       }
     }
 
