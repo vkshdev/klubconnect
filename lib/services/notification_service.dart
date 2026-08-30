@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/notification_model.dart';
+import '../routes/app_router.dart';
 import '../utils/constants.dart';
 
 class NotificationService {
@@ -46,7 +47,19 @@ class NotificationService {
       const initializationSettings = InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       );
-      await _localNotifications.initialize(initializationSettings);
+      await _localNotifications.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          if (response.payload != null && response.payload!.isNotEmpty) {
+            try {
+              final data = jsonDecode(response.payload!) as Map<String, dynamic>;
+              _handlePayloadRouting(data);
+            } catch (e) {
+              debugPrint('Error parsing notification payload: $e');
+            }
+          }
+        },
+      );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized &&
           userId != null) {
@@ -71,10 +84,39 @@ class NotificationService {
               priority: Priority.high,
             ),
           ),
+          payload: jsonEncode(message.data),
         );
       });
+
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        _handlePayloadRouting(message.data);
+      });
+
+      final initialMessage = await _fcm.getInitialMessage();
+      if (initialMessage != null) {
+        _handlePayloadRouting(initialMessage.data);
+      }
     } catch (e) {
       debugPrint('Notification Service initialization failed: $e');
+    }
+  }
+
+  void _handlePayloadRouting(Map<String, dynamic> data) {
+    final eventId = data['related_event_id'] ?? data['eventId'] ?? data['event_id'];
+    if (eventId != null && eventId.toString().isNotEmpty) {
+      AppRouter.navigateToEvent(eventId.toString());
+      return;
+    }
+
+    final clubId = data['related_club_id'] ?? data['clubId'] ?? data['club_id'];
+    if (clubId != null && clubId.toString().isNotEmpty) {
+      AppRouter.navigateToClub(clubId.toString());
+      return;
+    }
+
+    final actionUrl = data['action_url'] ?? data['actionUrl'];
+    if (actionUrl != null && actionUrl.toString().isNotEmpty) {
+      AppRouter.push(actionUrl.toString());
     }
   }
 

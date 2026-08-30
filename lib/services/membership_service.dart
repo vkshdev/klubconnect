@@ -8,10 +8,22 @@ import '../utils/institution_utils.dart';
 import 'audit_log_service.dart';
 
 class MembershipService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final AuditLogService _auditLogService = AuditLogService();
+  final FirebaseFirestore? _customFirestore;
+  final AuditLogService? _customAuditLogService;
 
-  String requestIdFor(String clubId, String userId) => '${clubId}_$userId';
+  MembershipService({
+    FirebaseFirestore? firestore,
+    AuditLogService? auditLogService,
+  })  : _customFirestore = firestore,
+        _customAuditLogService = auditLogService;
+
+  FirebaseFirestore get _firestore =>
+      _customFirestore ?? FirebaseFirestore.instance;
+  AuditLogService get _auditLogService =>
+      _customAuditLogService ?? AuditLogService();
+
+  static String requestIdFor(String clubId, String userId) =>
+      '${clubId}_$userId';
 
   Stream<MembershipRequestModel?> streamUserRequest({
     required String clubId,
