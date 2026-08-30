@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.klubconnect.app",
+        "paths": [
+          "/__/auth/action*",
+          "/clubs/*",
+          "/events/*"
+        ]
+      }
+    ]
+  }
+}

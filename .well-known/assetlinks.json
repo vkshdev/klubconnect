@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.klubconnect.app",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:01:C2:BE:E7:21:E2:24:67:70:02:2B:05:54:0F:73:90:C4:CD:78:E0:41:A5:6B:42:EC:06:5D:80:61"
+      ]
+    }
+  }
+]
