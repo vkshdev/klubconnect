@@ -46,7 +46,7 @@ class FirestoreService {
       });
     } catch (e) {
       if (kDebugMode) {
-        print('Error creating user document: $e');
+        debugPrint('Error creating user document: $e');
       }
       rethrow;
     }
@@ -65,7 +65,7 @@ class FirestoreService {
       return null;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting user: $e');
+        debugPrint('Error getting user: $e');
       }
       return null;
     }
@@ -144,7 +144,7 @@ class FirestoreService {
       });
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating user profile: $e');
+        debugPrint('Error updating user profile: $e');
       }
       rethrow;
     }
@@ -161,7 +161,7 @@ class FirestoreService {
       });
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating last login: $e');
+        debugPrint('Error updating last login: $e');
       }
     }
   }
@@ -177,7 +177,7 @@ class FirestoreService {
       });
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating online status: $e');
+        debugPrint('Error updating online status: $e');
       }
     }
   }
@@ -193,7 +193,7 @@ class FirestoreService {
       });
     } catch (e) {
       if (kDebugMode) {
-        print('Error marking profile complete: $e');
+        debugPrint('Error marking profile complete: $e');
       }
       rethrow;
     }
@@ -210,7 +210,7 @@ class FirestoreService {
       return querySnapshot.docs.isNotEmpty;
     } catch (e) {
       if (kDebugMode) {
-        print('Error checking email: $e');
+        debugPrint('Error checking email: $e');
       }
       return false;
     }
@@ -227,7 +227,7 @@ class FirestoreService {
       return querySnapshot.docs.isNotEmpty;
     } catch (e) {
       if (kDebugMode) {
-        print('Error checking enrollment: $e');
+        debugPrint('Error checking enrollment: $e');
       }
       return false;
     }
@@ -244,7 +244,7 @@ class FirestoreService {
       });
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating profile image: $e');
+        debugPrint('Error updating profile image: $e');
       }
       rethrow;
     }
