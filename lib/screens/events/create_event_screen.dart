@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -13,6 +12,7 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/event_service.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../utils/institution_utils.dart';
 import '../../utils/validators.dart';
 import '../../widgets/custom_button.dart';
@@ -109,8 +109,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Future<void> _createEvent() async {
     if (!_formKey.currentState!.validate()) return;
     if (_currentUser == null || _creatorRole == null) {
-      Fluttertoast.showToast(
-          msg: 'You do not have permission to create events for this club.');
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          'You do not have permission to create events for this club.',
+        );
+      }
       return;
     }
 
@@ -160,15 +164,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       }
 
       if (mounted) {
-        Fluttertoast.showToast(
-          msg: status == EventStatus.approved
+        AppSnackBar.showSuccess(
+          context,
+          status == EventStatus.approved
               ? 'Event published.'
               : 'Event submitted for club master approval.',
         );
         Navigator.pop(context);
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: 'Could not create event: $e');
+      if (mounted) {
+        AppSnackBar.showError(context, 'Could not create event: $e');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

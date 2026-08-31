@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/event_model.dart';
@@ -7,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/event_service.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../utils/theme.dart';
 import '../../widgets/cached_remote_image.dart';
 import '../../widgets/screen_background.dart';
@@ -506,11 +506,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         response: response,
         previousResponse: previousResponse,
       );
-      Fluttertoast.showToast(msg: 'RSVP updated.');
+      if (mounted) {
+        AppSnackBar.showSuccess(context, 'RSVP updated.');
+      }
     } catch (e) {
-      Fluttertoast.showToast(
-        msg: e.toString().replaceFirst('Exception: ', ''),
-      );
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
     }
   }
 }

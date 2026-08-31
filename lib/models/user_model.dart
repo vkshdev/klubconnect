@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/constants.dart';
 import '../utils/institution_utils.dart';
 import '../utils/search_index_utils.dart';
 
@@ -20,6 +21,9 @@ class UserModel {
   final DateTime updatedAt;
   final bool isActive;
   final bool profileCompleted;
+  final String accountStatus; // 'active', 'pending_verification', 'suspended', 'rejected'
+  final String? facultyInviteCode;
+  final DateTime? verifiedAt;
 
   final String? enrollmentNumber;
   final bool? enrollmentVisible;
@@ -59,6 +63,9 @@ class UserModel {
     required this.updatedAt,
     this.isActive = true,
     this.profileCompleted = false,
+    this.accountStatus = 'active',
+    this.facultyInviteCode,
+    this.verifiedAt,
     this.enrollmentNumber,
     this.enrollmentVisible = true,
     this.course,
@@ -77,6 +84,12 @@ class UserModel {
     this.isPresidentOf = const [],
     this.isOrganizerOf = const [],
   });
+
+  bool get isVerified => accountStatus == 'active';
+  bool get isFacultyVerified =>
+      userType == AppConstants.userTypeFaculty && isVerified;
+  bool get isPendingVerification =>
+      accountStatus == 'pending_verification';
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -100,6 +113,12 @@ class UserModel {
       updatedAt: _dateFrom(data['updated_at']),
       isActive: data['is_active'] ?? true,
       profileCompleted: data['profile_completed'] ?? false,
+      accountStatus: data['account_status']?.toString() ??
+          ((data['is_active'] == false) ? 'suspended' : 'active'),
+      facultyInviteCode: data['faculty_invite_code']?.toString(),
+      verifiedAt: data['verified_at'] != null
+          ? _dateFrom(data['verified_at'])
+          : null,
       enrollmentNumber: data['enrollment_number'],
       enrollmentVisible: data['enrollment_visible'] ?? true,
       course: data['course'],
@@ -165,11 +184,19 @@ class UserModel {
       'updated_at': Timestamp.fromDate(updatedAt),
       'is_active': isActive,
       'profile_completed': profileCompleted,
+      'account_status': accountStatus,
       'clubs_joined': clubsJoined,
       'clubs_created': clubsCreated,
       'is_president_of': isPresidentOf,
       'is_organizer_of': isOrganizerOf,
     };
+
+    if (facultyInviteCode != null) {
+      data['faculty_invite_code'] = facultyInviteCode;
+    }
+    if (verifiedAt != null) {
+      data['verified_at'] = Timestamp.fromDate(verifiedAt!);
+    }
 
     if (userType == 'student') {
       data['enrollment_number'] = enrollmentNumber;
