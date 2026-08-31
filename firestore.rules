@@ -105,38 +105,25 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.auth.uid == userId
         && request.resource.data.institution_id is string;
-      allow update: if isSignedIn() && (
-        (
-          request.auth.uid == userId &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'first_name',
-            'last_name',
-            'full_name',
-            'full_name_lower',
-            'search_keywords',
-            'about',
-            'phone_number',
-            'profile_image_url',
-            'fcm_token',
-            'last_token_updated_at',
-            'last_login_at',
-            'is_online',
-            'last_active_at',
-            'profile_completed',
-            'updated_at'
-          ])
-        ) ||
-        (
-          sameTenant(resource.data) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'clubs_joined',
-            'clubs_created',
-            'is_president_of',
-            'is_organizer_of',
-            'updated_at'
-          ])
-        )
-      );
+      allow update: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'first_name',
+          'last_name',
+          'full_name',
+          'full_name_lower',
+          'search_keywords',
+          'about',
+          'phone_number',
+          'profile_image_url',
+          'fcm_token',
+          'last_token_updated_at',
+          'last_login_at',
+          'is_online',
+          'last_active_at',
+          'profile_completed',
+          'updated_at'
+        ]);
 
       match /devices/{deviceId} {
         allow read, create, update: if isSignedIn() && request.auth.uid == userId;
@@ -148,6 +135,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && sameTenant(resource.data);
       allow create: if isSignedIn()
         && currentUser().user_type == 'faculty'
+        && (!currentUser().keys().hasAny(['account_status']) || currentUser().account_status == 'active')
         && request.resource.data.club_master_id == request.auth.uid
         && request.resource.data.institution_id is string
         && request.resource.data.institution_id == currentUser().institution_id
