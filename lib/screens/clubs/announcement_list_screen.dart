@@ -6,6 +6,7 @@ import '../../services/auth_service.dart';
 import '../../services/club_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/notification_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../widgets/glass_card.dart';
 import 'package:intl/intl.dart';
 
@@ -111,9 +112,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
       _contentController.clear();
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Announcement posted!')),
-        );
+        AppSnackBar.showSuccess(context, 'Announcement posted!');
       }
     }
     if (mounted) setState(() => _isPosting = false);

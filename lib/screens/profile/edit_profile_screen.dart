@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/image_upload_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../utils/institution_utils.dart';
 import '../../utils/theme.dart';
 import '../../widgets/screen_background.dart';
@@ -25,13 +26,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _firestoreService = FirestoreService();
   final _imageUploadService = ImageUploadService();
   final _aboutController = TextEditingController();
+  late UserModel _user;
   bool _isLoading = false;
   File? _imageFile;
 
   @override
   void initState() {
     super.initState();
-    _aboutController.text = widget.user.about ?? '';
+    _user = widget.user;
+    _aboutController.text = _user.about ?? '';
   }
 
   @override
@@ -52,15 +55,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _updateProfile() async {
     setState(() => _isLoading = true);
     try {
-      String? imageUrl = widget.user.profileImageUrl;
+      String? imageUrl = _user.profileImageUrl;
       if (_imageFile != null) {
         imageUrl = await _imageUploadService.uploadCompressedImage(
           image: _imageFile!,
-          storagePath: 'profiles/${widget.user.uid}/avatar.jpg',
-          ownerId: widget.user.uid,
-          institutionId: widget.user.institutionId.isNotEmpty
-              ? widget.user.institutionId
-              : InstitutionUtils.idFromCollegeName(widget.user.collegeName),
+          storagePath: 'profiles/${_user.uid}/avatar.jpg',
+          ownerId: _user.uid,
+          institutionId: _user.institutionId.isNotEmpty
+              ? _user.institutionId
+              : InstitutionUtils.idFromCollegeName(_user.collegeName),
           ownerType: 'profile',
           maxWidth: 1024,
           maxHeight: 1024,
@@ -68,23 +71,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       await _firestoreService.updateUserProfile(
-        uid: widget.user.uid,
+        uid: _user.uid,
         updates: {
           'about': _aboutController.text.trim(),
           'profile_image_url': imageUrl,
         },
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
-        );
+        AppSnackBar.showSuccess(context, 'Profile updated successfully');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update failed: $e')),
-        );
+        AppSnackBar.showError(context, 'Update failed: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -126,7 +125,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = widget.user;
+    final user = _user;
     final isFaculty = user.userType == 'faculty';
 
     return Scaffold(
@@ -283,21 +282,70 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ),
           const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: roleBadgeColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              roleLabel,
-              style: TextStyle(
-                color: roleBadgeColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: roleBadgeColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  roleLabel,
+                  style: TextStyle(
+                    color: roleBadgeColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
               ),
-            ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: user.isVerified
+                      ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                      : AppTheme.warningColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: user.isVerified
+                        ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                        : AppTheme.warningColor.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      user.isVerified
+                          ? Icons.check_circle_rounded
+                          : Icons.pending_rounded,
+                      size: 13,
+                      color: user.isVerified
+                          ? const Color(0xFF059669)
+                          : AppTheme.warningColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      user.isVerified ? 'ACTIVE' : 'PENDING VERIFICATION',
+                      style: TextStyle(
+                        color: user.isVerified
+                            ? const Color(0xFF059669)
+                            : AppTheme.warningColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -309,7 +357,143 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (user.isPendingVerification && isFaculty) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _showRedeemInviteCodeDialog,
+              icon: const Icon(Icons.vpn_key_rounded, size: 15),
+              label: const Text('Redeem Faculty Invite Code'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.warningColor,
+                side: BorderSide(
+                  color: AppTheme.warningColor.withValues(alpha: 0.6),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  void _showRedeemInviteCodeDialog() {
+    final codeController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Redeem Faculty Invite Code',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: AppTheme.darkTextColor,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Enter the faculty invite code provided by your institution administrator to verify your account.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.lightTextColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: codeController,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    labelText: 'Invite Code',
+                    hintText: 'e.g. MIT-FAC-2026',
+                    prefixIcon: const Icon(Icons.vpn_key_rounded),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed:
+                    isSubmitting ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                ),
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        final code = codeController.text.trim();
+                        if (code.isEmpty) {
+                          AppSnackBar.showWarning(
+                            context,
+                            'Please enter an invite code.',
+                          );
+                          return;
+                        }
+                        setDialogState(() => isSubmitting = true);
+                        final success =
+                            await _firestoreService.verifyFacultyWithInviteCode(
+                          uid: _user.uid,
+                          institutionId: _user.institutionId.isNotEmpty
+                              ? _user.institutionId
+                              : InstitutionUtils.idFromCollegeName(
+                                  _user.collegeName),
+                          inviteCode: code,
+                        );
+                        if (mounted) {
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                          if (success) {
+                            AppSnackBar.showSuccess(
+                              null,
+                              'Faculty account verified successfully!',
+                            );
+                            final updatedUser = await _firestoreService
+                                .getUserById(_user.uid);
+                            if (updatedUser != null && mounted) {
+                              setState(() => _user = updatedUser);
+                            }
+                          } else {
+                            setDialogState(() => isSubmitting = false);
+                            AppSnackBar.showError(
+                              null,
+                              'Invalid invite code for this institution.',
+                            );
+                          }
+                        }
+                      },
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Verify'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

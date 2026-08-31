@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -11,8 +10,11 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/club_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/image_upload_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../utils/constants.dart';
 import '../../utils/institution_utils.dart';
+import '../../utils/theme.dart';
 import '../../utils/validators.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -29,6 +31,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
   final _formKey = GlobalKey<FormState>();
   final _clubService = ClubService();
   final _firestoreService = FirestoreService();
+  final _imageUploadService = ImageUploadService();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
 
@@ -101,15 +104,30 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
   Future<void> _createClub() async {
     if (!_formKey.currentState!.validate()) return;
     if (_faculty == null) {
-      Fluttertoast.showToast(msg: 'Faculty profile not loaded yet.');
+      if (mounted) {
+        AppSnackBar.showWarning(context, 'Faculty profile not loaded yet.');
+      }
       return;
     }
     if (_faculty!.userType != AppConstants.userTypeFaculty) {
-      Fluttertoast.showToast(msg: 'Only faculty can create clubs.');
+      if (mounted) {
+        AppSnackBar.showError(context, 'Only faculty can create clubs.');
+      }
+      return;
+    }
+    if (!_faculty!.isFacultyVerified) {
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          'Only verified faculty accounts can create clubs.',
+        );
+      }
       return;
     }
     if (_presidentId == null || _presidentName == null) {
-      Fluttertoast.showToast(msg: 'Please select a student president.');
+      if (mounted) {
+        AppSnackBar.showWarning(context, 'Please select a student president.');
+      }
       return;
     }
 
@@ -140,6 +158,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
         clubMasterName: _faculty!.fullName,
         presidentId: _presidentId!,
         presidentName: _presidentName!,
+        organizers: const [],
         members: [_presidentId!],
         totalMembers: 1,
         createdAt: DateTime.now(),
@@ -150,21 +169,31 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
 
       final imageUpdates = <String, dynamic>{};
       if (_logoImage != null) {
-        imageUpdates['logo_url'] = await _clubService.uploadClubImage(
-          clubId: clubId,
+        imageUpdates['logo_url'] =
+            await _imageUploadService.uploadCompressedImage(
           image: _logoImage!,
-          fileName: 'logo.jpg',
-          ownerId: _faculty!.uid,
-          institutionId: club.institutionId,
+          storagePath: 'clubs/$clubId/logo.jpg',
+          ownerId: clubId,
+          institutionId: _faculty!.institutionId.isNotEmpty
+              ? _faculty!.institutionId
+              : InstitutionUtils.idFromCollegeName(_faculty!.collegeName),
+          ownerType: 'club',
+          maxWidth: 720,
+          maxHeight: 720,
         );
       }
       if (_bannerImage != null) {
-        imageUpdates['banner_url'] = await _clubService.uploadClubImage(
-          clubId: clubId,
+        imageUpdates['banner_url'] =
+            await _imageUploadService.uploadCompressedImage(
           image: _bannerImage!,
-          fileName: 'banner.jpg',
-          ownerId: _faculty!.uid,
-          institutionId: club.institutionId,
+          storagePath: 'clubs/$clubId/banner.jpg',
+          ownerId: clubId,
+          institutionId: _faculty!.institutionId.isNotEmpty
+              ? _faculty!.institutionId
+              : InstitutionUtils.idFromCollegeName(_faculty!.collegeName),
+          ownerType: 'club',
+          maxWidth: 1600,
+          maxHeight: 900,
         );
       }
       if (imageUpdates.isNotEmpty) {
@@ -172,11 +201,13 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
       }
 
       if (mounted) {
-        Fluttertoast.showToast(msg: 'Club created successfully.');
+        AppSnackBar.showSuccess(context, 'Club created successfully.');
         Navigator.pop(context);
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: 'Could not create club: $e');
+      if (mounted) {
+        AppSnackBar.showError(context, 'Could not create club: $e');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -197,6 +228,37 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_faculty!.isPendingVerification) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        color: AppTheme.warningColor,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Faculty verification pending: You cannot create official clubs until your account status is verified.',
+                          style: TextStyle(
+                            color: AppTheme.darkTextColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               GlassCard(
                 child: Column(
                   children: [

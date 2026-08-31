@@ -12,7 +12,9 @@ import '../../services/club_service.dart';
 import '../../services/event_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/notification_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../utils/constants.dart';
+import '../../utils/institution_utils.dart';
 import '../../utils/theme.dart';
 import '../clubs/club_details_screen.dart';
 import '../clubs/club_list_screen.dart';
@@ -39,6 +41,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   UserModel? _currentUser;
   bool _isLoading = true;
+  List<String> _managedClubIds = [];
+
+  bool get _isFaculty => _currentUser?.userType == AppConstants.userTypeFaculty;
 
   @override
   void initState() {
@@ -47,28 +52,37 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final uid = authService.currentUser?.uid;
-      if (uid == null) {
-        if (mounted) setState(() => _isLoading = false);
-        return;
-      }
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final uid = authService.currentUser?.uid;
+    if (uid == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
+    try {
       final user = await _firestoreService.getUserById(uid);
+      if (!mounted) return;
+
       if (user != null) {
+        final managed = <String>{
+          ...user.clubsCreated,
+          ...user.isPresidentOf,
+          ...user.isOrganizerOf,
+        }.toList();
+
         try {
           await _notificationService.initialize(userId: user.uid);
         } catch (e) {
           debugPrint('Notification init error: $e');
         }
-      }
 
-      if (mounted) {
         setState(() {
           _currentUser = user;
+          _managedClubIds = managed;
           _isLoading = false;
         });
+      } else {
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       debugPrint('Error loading user data: $e');
@@ -76,22 +90,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  bool get _isFaculty => _currentUser?.userType == AppConstants.userTypeFaculty;
-
-  List<String> get _managedClubIds {
-    final user = _currentUser;
-    if (user == null) return [];
-    return {
-      ...user.clubsCreated,
-      ...user.isPresidentOf,
-      ...user.isOrganizerOf,
-    }.toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
         body: Center(
             child: CircularProgressIndicator(color: AppTheme.primaryColor)),
       );
@@ -99,16 +102,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_currentUser == null) {
       return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Profile not found. Please sign in again.'),
-              const SizedBox(height: 16),
+              const Text('Could not load your profile'),
+              const SizedBox(height: 12),
               FilledButton(
-                onPressed: () =>
-                    Provider.of<AuthService>(context, listen: false).signOut(),
-                child: const Text('Back to Login'),
+                onPressed: _loadUserData,
+                child: const Text('Try again'),
               ),
             ],
           ),
@@ -136,6 +139,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildTopBar(),
+                          if (_isFaculty &&
+                              _currentUser!.isPendingVerification) ...[
+                            const SizedBox(height: 14),
+                            _buildOnboardingStatusBanner(),
+                          ],
                           const SizedBox(height: 18),
                           _buildHeroPanel(),
                           const SizedBox(height: 18),
@@ -441,7 +449,282 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildOnboardingStatusBanner() {
+    return _GlassPanel(
+      padding: const EdgeInsets.all(18),
+      borderRadius: 22,
+      backgroundColor: const Color(0xFFFFFBEB).withValues(alpha: 0.9),
+      borderColor: const Color(0xFFFDE68A),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.warningColor.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.pending_actions_rounded,
+                  color: AppTheme.warningColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Faculty Verification Pending',
+                      style: TextStyle(
+                        color: AppTheme.darkTextColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Your faculty account is pending institution approval. You have read-only access until verified.',
+                      style: TextStyle(
+                        color: AppTheme.darkTextColor.withValues(alpha: 0.8),
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _showRedeemInviteCodeDialog,
+              icon: const Icon(Icons.vpn_key_rounded, size: 16),
+              label: const Text('Verify with Invite Code'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.darkTextColor,
+                side: BorderSide(
+                  color: AppTheme.warningColor.withValues(alpha: 0.6),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 11),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRedeemInviteCodeDialog() {
+    final codeController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Verify Faculty Account',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: AppTheme.darkTextColor,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Enter the faculty invite code provided by your institution administrator to instantly activate your account.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.lightTextColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: codeController,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    labelText: 'Invite Code',
+                    hintText: 'e.g. MIT-FAC-2026',
+                    prefixIcon: const Icon(Icons.vpn_key_rounded),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed:
+                    isSubmitting ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                ),
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        final code = codeController.text.trim();
+                        if (code.isEmpty) {
+                          AppSnackBar.showWarning(
+                            context,
+                            'Please enter an invite code.',
+                          );
+                          return;
+                        }
+                        setDialogState(() => isSubmitting = true);
+                        final success =
+                            await _firestoreService.verifyFacultyWithInviteCode(
+                          uid: _currentUser!.uid,
+                          institutionId: _currentUser!.institutionId.isNotEmpty
+                              ? _currentUser!.institutionId
+                              : InstitutionUtils.idFromCollegeName(
+                                  _currentUser!.collegeName),
+                          inviteCode: code,
+                        );
+                        if (mounted) {
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                          if (success) {
+                            AppSnackBar.showSuccess(
+                              null,
+                              'Faculty account verified successfully! Welcome to KlubConnect.',
+                            );
+                            _loadUserData();
+                          } else {
+                            setDialogState(() => isSubmitting = false);
+                            AppSnackBar.showError(
+                              null,
+                              'Invalid invite code for this institution.',
+                            );
+                          }
+                        }
+                      },
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Verify'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showFacultyGatingDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: const Icon(
+          Icons.lock_person_rounded,
+          size: 40,
+          color: AppTheme.warningColor,
+        ),
+        title: const Text(
+          'Verification Required',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        content: const Text(
+          'Faculty verification is required to create and manage clubs. Please enter an authorized invite code or contact your institution administrator.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Dismiss'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showRedeemInviteCodeDialog();
+            },
+            child: const Text('Enter Code'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFacultyApprovalDesk() {
+    if (!_currentUser!.isFacultyVerified) {
+      return _GlassPanel(
+        padding: const EdgeInsets.all(20),
+        borderRadius: 22,
+        backgroundColor: const Color(0xFFFFFBEB).withValues(alpha: 0.7),
+        borderColor: const Color(0xFFFDE68A),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.warningColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                color: AppTheme.warningColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Approvals Desk Restricted',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.darkTextColor,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Approvals desk requires verified faculty status.',
+                    style: TextStyle(
+                      color: AppTheme.darkTextColor.withValues(alpha: 0.7),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return StreamBuilder<List<EventModel>>(
       stream: _eventService.getPendingEventsForClubs(_managedClubIds),
       builder: (context, snapshot) {
@@ -667,6 +950,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openCreateClub() {
+    if (_currentUser != null &&
+        _currentUser!.userType == AppConstants.userTypeFaculty &&
+        !_currentUser!.isFacultyVerified) {
+      _showFacultyGatingDialog();
+      return;
+    }
     Navigator.push(context,
         MaterialPageRoute(builder: (context) => const CreateClubScreen()));
   }
@@ -758,26 +1047,34 @@ class _GlassPanel extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
+  final Color? backgroundColor;
+  final Color? borderColor;
+  final double borderRadius;
 
   const _GlassPanel({
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.margin,
+    this.backgroundColor,
+    this.borderColor,
+    this.borderRadius = 28,
   });
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Container(
           margin: margin,
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.74),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.75)),
+            color: backgroundColor ?? Colors.white.withValues(alpha: 0.74),
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: borderColor ?? Colors.white.withValues(alpha: 0.75),
+            ),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF0F172A).withValues(alpha: 0.08),

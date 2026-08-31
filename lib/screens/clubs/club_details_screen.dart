@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/club_model.dart';
@@ -14,6 +13,7 @@ import '../../services/event_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/membership_service.dart';
 import '../../services/notification_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../utils/theme.dart';
 import '../../widgets/cached_remote_image.dart';
 import '../../widgets/screen_background.dart';
@@ -59,7 +59,9 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
   bool _isOrganizer(ClubModel club) =>
       _currentUser != null && club.organizers.contains(_currentUser!.uid);
   bool _isClubMaster(ClubModel club) =>
-      _currentUser != null && club.clubMasterId == _currentUser!.uid;
+      _currentUser != null &&
+      club.clubMasterId == _currentUser!.uid &&
+      (_currentUser!.userType != 'faculty' || _currentUser!.isFacultyVerified);
   bool _canManage(ClubModel club) => _isPresident(club) || _isClubMaster(club);
   bool _canCreateEvent(ClubModel club) =>
       _canManage(club) || _isOrganizer(club);
@@ -101,9 +103,16 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
           relatedClubId: club.clubId,
         );
       }
-      Fluttertoast.showToast(msg: 'Join request sent.');
+      if (mounted) {
+        AppSnackBar.showSuccess(context, 'Join request sent.');
+      }
     } catch (e) {
-      Fluttertoast.showToast(msg: e.toString().replaceFirst('Exception: ', ''));
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
     }
   }
 
@@ -111,9 +120,16 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
     if (_currentUser == null) return;
     try {
       await _membershipService.leaveClub(club: club, userId: _currentUser!.uid);
-      Fluttertoast.showToast(msg: 'You left ${club.name}.');
+      if (mounted) {
+        AppSnackBar.showInfo(context, 'You left ${club.name}.');
+      }
     } catch (e) {
-      Fluttertoast.showToast(msg: e.toString().replaceFirst('Exception: ', ''));
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
     }
   }
 
@@ -142,11 +158,14 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
       fromUserId: _currentUser!.uid,
       relatedClubId: request.clubId,
     );
-    Fluttertoast.showToast(
-      msg: status == RequestStatus.approved
-          ? 'Request approved.'
-          : 'Request rejected.',
-    );
+    if (mounted) {
+      AppSnackBar.showSuccess(
+        context,
+        status == RequestStatus.approved
+            ? 'Request approved.'
+            : 'Request rejected.',
+      );
+    }
   }
 
   Future<void> _updateEventStatus(EventModel event, EventStatus status) async {
@@ -169,11 +188,14 @@ class _ClubDetailsScreenState extends State<ClubDetailsScreen> {
       relatedClubId: event.clubId,
       relatedEventId: event.eventId,
     );
-    Fluttertoast.showToast(
-      msg: status == EventStatus.approved
-          ? 'Event approved.'
-          : 'Event rejected.',
-    );
+    if (mounted) {
+      AppSnackBar.showSuccess(
+        context,
+        status == EventStatus.approved
+            ? 'Event approved.'
+            : 'Event rejected.',
+      );
+    }
   }
 
   @override

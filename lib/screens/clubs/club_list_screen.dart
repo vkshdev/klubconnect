@@ -11,6 +11,7 @@ import '../../utils/theme.dart';
 import '../../widgets/cached_remote_image.dart';
 import '../../widgets/screen_background.dart';
 import '../home/search_screen.dart';
+import '../../utils/app_snackbar.dart';
 import 'club_details_screen.dart';
 import 'create_club_screen.dart';
 
@@ -121,13 +122,23 @@ class _ClubListScreenState extends State<ClubListScreen> {
                                   IconGlassButton(
                                     icon: Icons.add_rounded,
                                     iconColor: AppTheme.primaryColor,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const CreateClubScreen(),
-                                      ),
-                                    ),
+                                    onTap: () {
+                                      if (_currentUser?.isFacultyVerified !=
+                                          true) {
+                                        AppSnackBar.showWarning(
+                                          context,
+                                          'Faculty verification is required to create clubs.',
+                                        );
+                                        return;
+                                      }
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const CreateClubScreen(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ],
