@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/image_upload_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../utils/institution_utils.dart';
 import '../../utils/theme.dart';
 import '../../utils/validators.dart';
@@ -52,7 +52,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         setState(() => _imageFile = File(image.path));
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: 'Failed to pick image: $e');
+      if (mounted) {
+        AppSnackBar.showError(context, 'Failed to pick image: $e');
+      }
     }
   }
 
@@ -129,7 +131,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         maxHeight: 1024,
       );
     } catch (e) {
-      Fluttertoast.showToast(msg: 'Failed to upload image: $e');
+      if (mounted) {
+        AppSnackBar.showError(context, 'Failed to upload image: $e');
+      }
       return null;
     }
   }
@@ -138,7 +142,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_imageFile == null) {
-      Fluttertoast.showToast(msg: 'Please select a profile picture');
+      if (mounted) {
+        AppSnackBar.showWarning(context, 'Please select a profile picture');
+      }
       return;
     }
 
@@ -148,7 +154,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final uid = authService.currentUser?.uid;
 
     if (uid == null) {
-      Fluttertoast.showToast(msg: 'User not found');
+      if (mounted) {
+        AppSnackBar.showError(context, 'User not found');
+      }
       setState(() => _isLoading = false);
       return;
     }
@@ -171,7 +179,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         );
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: 'Setup failed: $e');
+      if (mounted) {
+        AppSnackBar.showError(context, 'Setup failed: $e');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

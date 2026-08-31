@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/custom_text_field.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/glass_card.dart';
+import '../../services/institution_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../utils/constants.dart';
 import '../../utils/institution_utils.dart';
 import '../../utils/theme.dart';
 import '../../utils/validators.dart';
+import '../../widgets/custom_button.dart';
+import '../../widgets/custom_text_field.dart';
+import '../../widgets/glass_card.dart';
 import 'profile_setup_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
@@ -50,6 +51,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   String? _selectedProfession;
   String? _selectedDepartment;
   int? _collegeJoinedYear;
+  final _facultyInviteCodeController = TextEditingController();
 
   @override
   void dispose() {
@@ -63,6 +65,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _collegeNameController.dispose();
     _enrollmentController.dispose();
     _addressController.dispose();
+    _facultyInviteCodeController.dispose();
     super.dispose();
   }
 
@@ -184,17 +187,42 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedDOB == null) {
-      Fluttertoast.showToast(msg: 'Please select date of birth');
+      if (mounted) {
+        AppSnackBar.showWarning(context, 'Please select date of birth');
+      }
       return;
     }
     if (_selectedGender == null) {
-      Fluttertoast.showToast(msg: 'Please select gender');
+      if (mounted) {
+        AppSnackBar.showWarning(context, 'Please select gender');
+      }
       return;
     }
 
     setState(() => _isLoading = true);
 
     final authService = Provider.of<AuthService>(context, listen: false);
+    final collegeName = _collegeNameController.text.trim();
+    final institutionId = InstitutionUtils.idFromCollegeName(collegeName);
+
+    String accountStatus = 'active';
+    String? facultyInviteCode;
+
+    if (!isStudent) {
+      final institutionService = InstitutionService();
+      final institution =
+          await institutionService.getInstitutionById(institutionId);
+      final inviteCode = _facultyInviteCodeController.text.trim();
+      final verification = InstitutionService.verifyFaculty(
+        email: _emailController.text.trim().toLowerCase(),
+        inviteCode: inviteCode.isNotEmpty ? inviteCode : null,
+        institution: institution,
+      );
+      accountStatus = verification.accountStatus;
+      if (inviteCode.isNotEmpty) {
+        facultyInviteCode = inviteCode.toUpperCase();
+      }
+    }
 
     final userData = {
       'email': _emailController.text.trim().toLowerCase(),
@@ -206,10 +234,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       'user_type': widget.userType,
       'gender': _selectedGender,
       'date_of_birth': _selectedDOB,
-      'institution_id': InstitutionUtils.idFromCollegeName(
-          _collegeNameController.text.trim()),
-      'college_name': _collegeNameController.text.trim(),
+      'institution_id': institutionId,
+      'college_name': collegeName,
+      'account_status': accountStatus,
     };
+
+    if (facultyInviteCode != null) {
+      userData['faculty_invite_code'] = facultyInviteCode;
+    }
 
     if (isStudent) {
       userData.addAll({
@@ -252,7 +284,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       if (msg.contains('channel-error')) {
         msg = 'Connection error. Please check your internet or Firebase setup.';
       }
-      Fluttertoast.showToast(msg: msg);
+      if (mounted) {
+        AppSnackBar.showError(context, msg);
+      }
     }
   }
 
@@ -761,6 +795,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              label: 'Faculty Invite Code (Optional)',
+              hint: 'Enter institution invite code if provided',
+              controller: _facultyInviteCodeController,
+              prefixIcon: Icons.vpn_key_rounded,
             ),
           ],
           const SizedBox(height: 16),

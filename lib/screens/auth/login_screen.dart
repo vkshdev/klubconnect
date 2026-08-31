@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
+import '../../utils/app_snackbar.dart';
 import '../../utils/constants.dart';
 import '../../utils/theme.dart';
 import '../../utils/validators.dart';
@@ -60,7 +60,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } else {
-      Fluttertoast.showToast(msg: result['message'] ?? 'Login failed');
+      if (mounted) {
+        AppSnackBar.showError(context, result['message'] ?? 'Login failed');
+      }
     }
   }
 
@@ -71,12 +73,19 @@ class _LoginScreenState extends State<LoginScreen> {
         await authService.sendMagicLink(_emailController.text.trim());
     if (mounted) setState(() => _isLoading = false);
 
-    Fluttertoast.showToast(
-      msg: result['message'] ??
-          (result['success'] == true
-              ? 'Magic link sent'
-              : 'Unable to send magic link'),
-    );
+    if (mounted) {
+      if (result['success'] == true) {
+        AppSnackBar.showSuccess(
+          context,
+          result['message'] ?? 'Magic link sent',
+        );
+      } else {
+        AppSnackBar.showError(
+          context,
+          result['message'] ?? 'Unable to send magic link',
+        );
+      }
+    }
   }
 
   @override
