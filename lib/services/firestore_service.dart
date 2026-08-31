@@ -20,6 +20,7 @@ class FirestoreService {
           (userData['institution_id'] ?? '').toString().trim().isNotEmpty
               ? userData['institution_id']
               : InstitutionUtils.idFromCollegeName(collegeName);
+      final accountStatus = (userData['account_status'] ?? 'active').toString();
 
       await _firestore.collection(AppConstants.usersCollection).doc(uid).set({
         ...userData,
@@ -39,6 +40,11 @@ class FirestoreService {
         'is_active': true,
         'is_online': false,
         'profile_completed': false,
+        'account_status': accountStatus,
+        if (userData['faculty_invite_code'] != null)
+          'faculty_invite_code': userData['faculty_invite_code'],
+        if (accountStatus == 'active')
+          'verified_at': FieldValue.serverTimestamp(),
         'clubs_joined': [],
         'clubs_created': [],
         'is_president_of': [],
@@ -49,6 +55,39 @@ class FirestoreService {
         debugPrint('Error creating user document: $e');
       }
       rethrow;
+    }
+  }
+
+  Future<bool> verifyFacultyWithInviteCode({
+    required String uid,
+    required String institutionId,
+    required String inviteCode,
+  }) async {
+    try {
+      if (institutionId.isEmpty || inviteCode.trim().isEmpty) return false;
+      final instDoc =
+          await _firestore.collection('institutions').doc(institutionId).get();
+      if (!instDoc.exists) return false;
+      final validCodes =
+          (instDoc.data()?['faculty_invite_codes'] as List<dynamic>?)
+                  ?.map((e) => e.toString().trim().toUpperCase())
+                  .toList() ??
+              [];
+      final cleanCode = inviteCode.trim().toUpperCase();
+      if (!validCodes.contains(cleanCode)) return false;
+
+      await _firestore.collection(AppConstants.usersCollection).doc(uid).update({
+        'account_status': 'active',
+        'faculty_invite_code': cleanCode,
+        'verified_at': FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error verifying faculty invite code: $e');
+      }
+      return false;
     }
   }
 
