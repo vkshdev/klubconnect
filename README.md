@@ -11,9 +11,10 @@
 <p align="center">
   <a href="#why-it-exists">Why It Exists</a> &nbsp;·&nbsp;
   <a href="#what-it-does">What It Does</a> &nbsp;·&nbsp;
-  <a href="#who-it-is-for">Who It Is For</a> &nbsp;·&nbsp;
+  <a href="#key-features">Key Features</a> &nbsp;·&nbsp;
   <a href="#tech-stack">Tech Stack</a> &nbsp;·&nbsp;
-  <a href="ARCHITECTURE.md">Architecture</a>
+  <a href="ARCHITECTURE.md">Architecture</a> &nbsp;·&nbsp;
+  <a href="BACKEND_DESIGN.md">Backend Design</a>
 </p>
 
 ---
@@ -24,100 +25,67 @@ Every college has clubs. Most of them are disorganized.
 
 Event announcements get buried in WhatsApp threads. Membership requests are tracked in Excel sheets. Students miss events they would have attended because they never heard about them. Faculty mentors have no visibility into what their clubs are doing. Organizers send the same message to five different platforms and still reach half the audience.
 
-KlubConnect exists because the infrastructure for college community life has not kept pace with how students actually communicate and organize. It is a purpose-built platform that replaces ad-hoc coordination with structured, real-time tools — built specifically for the college context, not repurposed from corporate software.
+KlubConnect provides dedicated infrastructure for campus organization. It replaces fragmented communication with structured, real-time tools built specifically for higher education institutions — featuring institutional domain verification, role-based governance, transactional event capacity, and multi-tenant security isolation.
 
 ---
 
 ## What It Does
 
-KlubConnect is a full-stack college club and event management platform. It handles the complete lifecycle of college community life — from the moment a faculty member creates a club to the moment a student receives a push notification that their membership has been approved.
+KlubConnect handles the complete lifecycle of college community operations:
 
 ### For Students
+- Discover clubs across campus filtered by category, interest, and keyword indexing.
+- Submit membership requests and track approval decisions in real time.
+- RSVP to campus events with live participant counts updated through transactional cloud workers.
+- Receive targeted push notifications for club announcements and membership updates.
+- View a unified calendar of approved institutional events.
 
-- Discover every club at their college, filtered by category and interest.
-- Submit membership requests and track approval status in real time.
-- RSVP to events with live participant counts that update instantly.
-- Receive push notifications for events, announcements, and membership decisions.
-- View a unified calendar of all approved college events — no hunting across platforms.
+### For Club Leaders & Presidents
+- Propose events and route them through formal faculty mentor approval workflows.
+- Post and pin announcements to all verified club members.
+- Manage member rosters and assign organizer roles with full audit accountability.
+- Monitor live event check-ins and capacity metrics.
 
-### For Club Leaders
-
-- Propose events and route them through the faculty approval workflow.
-- Post and pin announcements to all club members.
-- Manage member roles — promote organizers, assign presidents — with full audit history.
-- Monitor real-time RSVP counts without spreadsheets.
-
-### For Faculty
-
-- Create and govern clubs with institutional authority.
-- Approve or reject event proposals before they go public.
-- Maintain full oversight of member activity through an audit log.
-- A single source of truth for every club they mentor.
+### For Faculty Mentors
+- Govern student clubs with institutional authority verified through domain checks or invite codes.
+- Review, approve, or reject event proposals before public campus publishing.
+- Maintain comprehensive oversight of member activities through append-only audit logs.
+- Single source of truth for all student organizations under their mentorship.
 
 ---
 
-## Who It Is For
+## Key Features
 
-KlubConnect is designed for colleges where student life is active but disorganized — where clubs exist but the infrastructure does not, where events happen but communication breaks down, and where faculty want oversight without bureaucratic overhead.
-
-It is not a generic social network. It does not try to replicate what exists. It is scoped, purposeful, and built around the specific workflows that college communities actually need.
-
----
-
-## App Preview
-
-<p align="center">
-  <img src="assets/screenshots/Sign_in.png" width="250" alt="Sign In Screen">
-  <img src="assets/screenshots/Students.png" width="250" alt="Student Home Screen">
-  <img src="assets/screenshots/Faculty.png" width="250" alt="Faculty Home Screen">
-</p>
+- **Multi-Tenant Campus Isolation**: Strict multi-tenant partitioning ensures every query and document is scoped to an immutable `institution_id`.
+- **Dual-Mode Faculty Verification**: Faculty status is verified automatically via institutional email domain whitelist matching or through authorized invite codes, defaulting unverified users to `pending_verification`.
+- **Account Status Gating**: Visual onboarding status banners guide unverified faculty on `HomeScreen`, while club creation and event approvals remain gated until verification is active.
+- **Zero-Trust Security Lockdown**: Client update permissions for role arrays (`is_president_of`, `is_organizer_of`, `clubs_joined`, `clubs_created`) are strictly removed in `firestore.rules`. User document updates are restricted to a whitelist of 15 safe profile fields.
+- **Modern UI**: Polished presentation layer featuring custom `Panel` containers, Material 3 theming, and a centralized theme-aware `AppSnackBar` with semantic variants (`success`, `error`, `warning`, `info`).
+- **Asynchronous Go Backend Worker**: Serverless microservice on Google Cloud Run triggered by GCP Eventarc CloudEvents (v1.0) handling atomic membership batches, transactional RSVP delta calculations, multicast FCM push notifications, and tamper-proof audit trails.
+- **Comprehensive Observability**: Full instrumentation with Firebase Performance Monitoring, Firebase Remote Config, Firebase Crashlytics, Firebase Analytics, and Firebase App Check (Play Integrity & App Attest).
 
 ---
 
 ## Tech Stack
 
-KlubConnect is built on a hybrid architecture — a Flutter mobile app for real-time user interaction, Firebase BaaS for data and authentication, and a Go microservice on Google Cloud Run for server-critical, high-concurrency operations.
-
-| Layer | Technology |
-|---|---|
-| Mobile App | Flutter (Dart) — Android, iOS, Web |
-| State Management | Provider |
-| Database | Cloud Firestore — real-time, multi-tenant NoSQL |
-| File Storage | Firebase Storage |
-| Authentication | Firebase Auth — Email, Magic Link, OTP |
-| Device Security | Firebase App Check — Play Integrity / App Attest |
-| Push Notifications | Firebase Cloud Messaging |
-| Event Bus | GCP Eventarc — Firestore triggers to CloudEvent HTTP |
-| Backend Workers | Go 1.22 on Google Cloud Run — scale-to-zero |
-| Secret Management | GCP Secret Manager |
-
-The Go backend is not a wrapper around Firebase. It exists to solve specific production problems that a mobile client cannot safely or reliably handle on its own.
-
-- **Audit logs** written server-side so they cannot be forged by a modified client.
-- **FCM dispatch** handled asynchronously with stale token cleanup and multi-device fan-out.
-- **RSVP counters** aggregated through Firestore Transactions to survive concurrent write storms during large events.
-- **Membership approvals** committed as atomic batched writes across multiple collections so a client crash cannot leave data in a partial state.
-
-Every Go handler uses a CloudEvent ID idempotency guard backed by a `go_worker_state` Firestore collection, ensuring at-least-once Eventarc delivery does not produce duplicate side effects.
+| Layer | Technology | Description |
+|---|---|---|
+| **Mobile Client** | Flutter (Dart 3.x) | Cross-platform client for Android, iOS, and Web |
+| **State Management** | Provider | ViewModel architecture and stream lifecycle management |
+| **Authentication** | Firebase Auth | Email/Password, Magic Link, and Phone OTP |
+| **Database** | Cloud Firestore | Multi-tenant NoSQL document database partitioned by `institution_id` |
+| **Media Storage** | Firebase Storage | Profile images and event banners with `storage_assets` indexing |
+| **Push Notifications** | Firebase Cloud Messaging | Multicast push notifications via HTTP v1 API |
+| **Device Attestation** | Firebase App Check | Play Integrity (Android) and App Attest (iOS) |
+| **Performance Monitoring** | `firebase_performance: ^0.10.1` | Network latency, trace monitoring, and UI render metrics |
+| **Feature Configuration** | `firebase_remote_config: ^5.3.4` | Dynamic feature flags, runtime thresholds, and kill switches |
+| **Crash Reporting** | `firebase_crashlytics: ^5.0.4` | Real-time crash diagnostics and stack trace aggregation |
+| **Product Analytics** | `firebase_analytics: ^12.0.3` | User onboarding funnels and engagement metrics |
+| **Event Routing** | GCP Eventarc | Firestore triggers delivered as CloudEvents v1.0 |
+| **Backend Microservice**| Go 1.22 on Google Cloud Run | Server-side atomic batch processing and idempotency guards |
+| **Secret Management** | GCP Secret Manager | Production credentials and runtime secrets |
 
 ---
-
-## Security
-
-Security is enforced at every layer, not just at the application level.
-
-- **Multi-tenant isolation**: Every Firestore read and write is scoped to the user's verified `institution_id`. A student at one college cannot access any data from another.
-- **Role-Based Access Control**: Club creation is restricted to faculty users at the Firestore rule level — not just the UI. Event approval is restricted to the club master. These rules are enforced server-side and cannot be bypassed.
-- **Immutable records**: Audit logs and idempotency state cannot be modified or deleted by any client credential. They are owned exclusively by the Go backend worker.
-- **Device attestation**: Firebase App Check with Play Integrity (Android) and App Attest (iOS) ensures only genuine app instances can talk to the backend.
-
----
-
-## Architecture
-
-For the full system architecture — see [ARCHITECTURE.md](ARCHITECTURE.md).
-
-For Go backend handler specifications, trigger contracts, and the membership approval sequence diagram, see [BACKEND_DESIGN.md](BACKEND_DESIGN.md).
 
 ---
 
