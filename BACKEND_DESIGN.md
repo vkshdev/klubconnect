@@ -1,7 +1,7 @@
 # KlubConnect — Go Backend Design
 
 **Service:** Go Background Worker  
-**Runtime:** Go 1.22+ on Google Cloud Run  
+**Runtime:** Go 1.26+ on Google Cloud Run  
 **Event Source:** GCP Eventarc (CloudEvents v1.0)  
 **Database:** Cloud Firestore (Multi-Tenant Partitioning by `institution_id`)  
 **Notifications:** Firebase Cloud Messaging (FCM HTTP v1 API)  
