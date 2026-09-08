@@ -82,7 +82,7 @@ KlubConnect handles the complete lifecycle of college community operations:
 | **Crash Reporting** | `firebase_crashlytics: ^5.0.4` | Real-time crash diagnostics and stack trace aggregation |
 | **Product Analytics** | `firebase_analytics: ^12.0.3` | User onboarding funnels and engagement metrics |
 | **Event Routing** | GCP Eventarc | Firestore triggers delivered as CloudEvents v1.0 |
-| **Backend Microservice**| Go 1.22 on Google Cloud Run | Server-side atomic batch processing and idempotency guards |
+| **Backend Microservice**| Go 1.26 on Google Cloud Run | Server-side atomic batch processing and idempotency guards |
 | **Secret Management** | GCP Secret Manager | Production credentials and runtime secrets |
 
 ---

@@ -84,7 +84,7 @@ flowchart TB
 | **Crash Reporting** | `firebase_crashlytics: ^5.0.4` | Real-time crash diagnostics and non-fatal logging |
 | **Product Analytics** | `firebase_analytics: ^12.0.3` | User engagement funnels and lifecycle metrics |
 | **Event Routing** | GCP Eventarc | Delivers Firestore mutation events (CloudEvents v1.0) to the Go worker |
-| **Backend Worker** | Go 1.22 on Cloud Run | Server-side business logic, atomic batches, and idempotent handlers |
+| **Backend Worker** | Go 1.26 on Cloud Run | Server-side business logic, atomic batches, and idempotent handlers |
 | **Secrets** | GCP Secret Manager | Manages runtime API keys, service accounts, and credentials |
 
 ---
