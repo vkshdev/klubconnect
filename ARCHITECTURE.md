@@ -12,7 +12,7 @@
 ## 1. Overview & System Design
 
 KlubConnect utilizes a **hybrid cloud architecture**:
-* **Flutter client** interfaces directly with **Firebase** for responsive user interactions, live data streams, offline caching, and glassmorphic UI presentation.
+* **Flutter client** interfaces directly with **Firebase** for responsive user interactions, live data streams, offline caching, and smooth UI presentation.
 * **Go microservice on Google Cloud Run** handles background processing, atomic multi-collection transactions, idempotent event processing, push notification fanout with stale token hygiene, and tamper-proof audit logging triggered through **GCP Eventarc**.
 
 ```mermaid

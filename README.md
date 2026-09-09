@@ -5,7 +5,7 @@
 <h1 align="center">KlubConnect</h1>
 
 <p align="center">
-  <strong>College clubs should not run on group chats and spreadsheets.</strong>
+  <strong>College clubs should not run on group chats or spreadsheets.</strong>
 </p>
 
 <p align="center">
@@ -61,7 +61,7 @@ KlubConnect handles the complete lifecycle of college community operations:
 - **Account Status Gating**: Visual onboarding status banners guide unverified faculty on `HomeScreen`, while club creation and event approvals remain gated until verification is active.
 - **Zero-Trust Security Lockdown**: Client update permissions for role arrays (`is_president_of`, `is_organizer_of`, `clubs_joined`, `clubs_created`) are strictly removed in `firestore.rules`. User document updates are restricted to a whitelist of 15 safe profile fields.
 - **Modern UI**: Polished presentation layer featuring custom `Panel` containers, Material 3 theming, and a centralized theme-aware `AppSnackBar` with semantic variants (`success`, `error`, `warning`, `info`).
-- **Asynchronous Go Backend Worker**: Serverless microservice on Google Cloud Run triggered by GCP Eventarc CloudEvents (v1.0) handling atomic membership batches, transactional RSVP delta calculations, multicast FCM push notifications, and tamper-proof audit trails.
+- **Asynchronous Go Backend Worker**: Serverless microservice on Google Cloud Run triggered by GCP Eventarc CloudEvents handling atomic membership batches, transactional RSVP delta calculations, multicast FCM push notifications, and tamper-proof audit trails.
 - **Comprehensive Observability**: Full instrumentation with Firebase Performance Monitoring, Firebase Remote Config, Firebase Crashlytics, Firebase Analytics, and Firebase App Check (Play Integrity & App Attest).
 
 ---
@@ -84,8 +84,6 @@ KlubConnect handles the complete lifecycle of college community operations:
 | **Event Routing** | GCP Eventarc | Firestore triggers delivered as CloudEvents v1.0 |
 | **Backend Microservice**| Go 1.26 on Google Cloud Run | Server-side atomic batch processing and idempotency guards |
 | **Secret Management** | GCP Secret Manager | Production credentials and runtime secrets |
-
----
 
 ---
 
