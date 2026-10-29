@@ -11,6 +11,7 @@
 <p align="center">
   <a href="#why-it-exists">Why It Exists</a> &nbsp;·&nbsp;
   <a href="#what-it-does">What It Does</a> &nbsp;·&nbsp;
+  <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
   <a href="#key-features">Key Features</a> &nbsp;·&nbsp;
   <a href="#tech-stack">Tech Stack</a> &nbsp;·&nbsp;
   <a href="ARCHITECTURE.md">Architecture</a> &nbsp;·&nbsp;
@@ -51,6 +52,14 @@ KlubConnect handles the complete lifecycle of college community operations:
 - Review, approve, or reject event proposals before public campus publishing.
 - Maintain comprehensive oversight of member activities through append-only audit logs.
 - Single source of truth for all student organizations under their mentorship.
+
+---
+
+## Screenshots
+
+| Sign In & Onboarding | Student Experience | Faculty Governance |
+| :---: | :---: | :---: |
+| <img src="assets/screenshots/Sign_in.png" width="280" alt="Sign In Screen" /> | <img src="assets/screenshots/Students.png" width="280" alt="Student Dashboard" /> | <img src="assets/screenshots/Faculty.png" width="280" alt="Faculty Mentorship Screen" /> |
 
 ---
 
